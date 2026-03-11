@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1038018450510",
+    "project_id": "fire-alert-system-b2619",
+    "storage_bucket": "fire-alert-system-b2619.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1038018450510:android:2fbf1b478d6f1eca61df1f",
+        "android_client_info": {
+          "package_name": "com.example.fire_alert_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAu2iFgSc2nw3-eeH_5jKgHcPwsTUbRk6w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1038018450510:android:03a5948e01ec3f5b61df1f",
+        "android_client_info": {
+          "package_name": "com.firealert.system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAu2iFgSc2nw3-eeH_5jKgHcPwsTUbRk6w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
