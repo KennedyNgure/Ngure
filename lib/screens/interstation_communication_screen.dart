@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class InterstationCommunicationScreen extends StatelessWidget {
+class InterstationCommunicationScreen extends StatefulWidget {
   final String stationName;
 
   const InterstationCommunicationScreen({super.key, required this.stationName});
+
+  @override
+  State<InterstationCommunicationScreen> createState() =>
+      _InterstationCommunicationScreenState();
+}
+
+class _InterstationCommunicationScreenState
+    extends State<InterstationCommunicationScreen> {
+  TextEditingController searchController = TextEditingController();
+  String searchQuery = "";
 
   String getChatId(String a, String b) {
     List stations = [a, b];
@@ -12,14 +22,26 @@ class InterstationCommunicationScreen extends StatelessWidget {
     return stations.join("_");
   }
 
-  void startNewChat(BuildContext context) async {
+  Future deleteChat(String chatId) async {
+    var chatRef =
+    FirebaseFirestore.instance.collection("interstation_chats").doc(chatId);
 
+    var messages = await chatRef.collection("messages").get();
+
+    for (var doc in messages.docs) {
+      await doc.reference.delete();
+    }
+
+    await chatRef.delete();
+  }
+
+  void startNewChat(BuildContext context) async {
     var stationsSnapshot =
     await FirebaseFirestore.instance.collection("stations").get();
 
     List<String> stations = stationsSnapshot.docs
         .map((doc) => doc["station_name"] as String)
-        .where((name) => name != stationName)
+        .where((name) => name != widget.stationName)
         .toList();
 
     showDialog(
@@ -40,17 +62,18 @@ class InterstationCommunicationScreen extends StatelessWidget {
                   onTap: () async {
                     Navigator.pop(context);
 
-                    String chatId = getChatId(stationName, otherStation);
+                    String chatId =
+                    getChatId(widget.stationName, otherStation);
 
                     var chatRef = FirebaseFirestore.instance
                         .collection("interstation_chats")
                         .doc(chatId);
 
                     await chatRef.set({
-                      "participants": [stationName, otherStation],
+                      "participants": [widget.stationName, otherStation],
                       "lastMessage": "",
                       "lastTimestamp": Timestamp.now(),
-                      "unread_$stationName": 0,
+                      "unread_${widget.stationName}": 0,
                       "unread_$otherStation": 0,
                     }, SetOptions(merge: true));
 
@@ -58,7 +81,7 @@ class InterstationCommunicationScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => StationChatPage(
-                          stationName: stationName,
+                          stationName: widget.stationName,
                           otherStation: otherStation,
                         ),
                       ),
@@ -80,91 +103,169 @@ class InterstationCommunicationScreen extends StatelessWidget {
         title: const Text("Interstation Communication"),
         backgroundColor: Colors.blue,
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.red,
         child: const Icon(Icons.add),
         onPressed: () => startNewChat(context),
       ),
+      body: Column(
+        children: [
 
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection("interstation_chats")
-            .orderBy("lastTimestamp", descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          var chats = snapshot.data!.docs;
-
-          List relevantChats =
-          chats.where((doc) => doc.id.contains(stationName)).toList();
-
-          if (relevantChats.isEmpty) {
-            return const Center(child: Text("No conversations yet"));
-          }
-
-          return ListView.builder(
-            itemCount: relevantChats.length,
-            itemBuilder: (context, index) {
-
-              var chatDoc = relevantChats[index];
-              var data = chatDoc.data() as Map<String, dynamic>? ?? {};
-
-              String chatId = chatDoc.id;
-
-              List stations = chatId.split("_");
-
-              String otherStation =
-              stations.firstWhere((s) => s != stationName);
-
-              int unreadCount = data["unread_$stationName"] ?? 0;
-
-              return ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.red,
-                  child: Icon(Icons.local_fire_department,
-                      color: Colors.white),
+          /// SEARCH BAR
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: "Search station...",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value.toLowerCase();
+                });
+              },
+            ),
+          ),
 
-                title: Text(otherStation),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("interstation_chats")
+                  .orderBy("lastTimestamp", descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
 
-                subtitle: Text(
-                  data["lastMessage"] ?? "No messages yet",
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                trailing: unreadCount > 0
-                    ? CircleAvatar(
-                  radius: 12,
-                  backgroundColor: Colors.red,
-                  child: Text(
-                    unreadCount.toString(),
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 12),
-                  ),
-                )
-                    : null,
+                var chats = snapshot.data!.docs;
 
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => StationChatPage(
-                        stationName: stationName,
-                        otherStation: otherStation,
+                List relevantChats = chats.where((doc) {
+
+                  if (!doc.id.contains(widget.stationName)) return false;
+
+                  List stations = doc.id.split("_");
+
+                  String otherStation =
+                  stations.firstWhere((s) => s != widget.stationName);
+
+                  return otherStation
+                      .toLowerCase()
+                      .contains(searchQuery);
+
+                }).toList();
+
+                if (relevantChats.isEmpty) {
+                  return const Center(child: Text("No conversations yet"));
+                }
+
+                return ListView.builder(
+                  itemCount: relevantChats.length,
+                  itemBuilder: (context, index) {
+
+                    var chatDoc = relevantChats[index];
+                    var data =
+                        chatDoc.data() as Map<String, dynamic>? ?? {};
+
+                    String chatId = chatDoc.id;
+
+                    List stations = chatId.split("_");
+
+                    String otherStation =
+                    stations.firstWhere((s) => s != widget.stationName);
+
+                    int unreadCount =
+                        data["unread_${widget.stationName}"] ?? 0;
+
+                    return ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: Colors.red,
+                        child: Icon(Icons.local_fire_department,
+                            color: Colors.white),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
+
+                      title: Text(otherStation),
+
+                      subtitle: Text(
+                        data["lastMessage"] ?? "No messages yet",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+
+                          if (unreadCount > 0)
+                            CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.red,
+                              child: Text(
+                                unreadCount.toString(),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12),
+                              ),
+                            ),
+
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: const Text("Delete Chat"),
+                                  content: const Text(
+                                      "Are you sure you want to delete this conversation?"),
+                                  actions: [
+
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context),
+                                      child: const Text("Cancel"),
+                                    ),
+
+                                    TextButton(
+                                      onPressed: () async {
+
+                                        Navigator.pop(context);
+
+                                        await deleteChat(chatId);
+
+                                      },
+                                      child: const Text("Delete"),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => StationChatPage(
+                              stationName: widget.stationName,
+                              otherStation: otherStation,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,8 +1,5 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,22 +9,26 @@ class FireReportService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future submitReport({
-    required String description,
-    required String imageUrl,
+    required String fireType,
+    required String fireSize,
+    required int peopleTrapped,
+    required String evacuationStatus,
     required double lat,
     required double lon,
     String? name,
     String? phone,
   }) async {
     await _firestore.collection("reports").add({
-      "description": description,
-      "imageUrl": imageUrl,
+      "fireType": fireType,
+      "fireSize": fireSize,
+      "peopleTrapped": peopleTrapped,
+      "evacuationStatus": evacuationStatus,
       "latitude": lat,
       "longitude": lon,
       "reporterName": name,
       "reporterPhone": phone,
       "status": "pending",
-      "timestamp": Timestamp.now(),
+      "timestamp": FieldValue.serverTimestamp(),
     });
   }
 }
@@ -40,56 +41,43 @@ class ReportFireScreen extends StatefulWidget {
 }
 
 class _ReportFireScreenState extends State<ReportFireScreen> {
-  final TextEditingController descriptionController = TextEditingController();
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController peopleController = TextEditingController();
 
   final FireReportService service = FireReportService();
-  final ImagePicker picker = ImagePicker();
 
-  Uint8List? _imageBytes;
+  String? selectedFireType;
+  String? selectedFireSize;
+  String? evacuationStatus;
+
+
   bool isLoading = false;
 
-  /// PICK IMAGE
-  Future pickImage() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+  final List<String> fireTypes = [
+    "House/building fire",
+    "Forest or bush fire",
+    "Vehicle fire",
+    "Electrical fire",
+    "Industrial fire",
+  ];
 
-    if (pickedFile != null) {
-      final bytes = await pickedFile.readAsBytes();
+  final List<String> fireSizes = [
+    "Small",
+    "Medium",
+    "Large",
+  ];
 
-      setState(() {
-        _imageBytes = bytes;
-      });
-    }
-  }
+  final List<String> evacuationOptions = [
+    "Evacuated",
+    "Evacuation in progress",
+    "People still inside",
+  ];
 
-  /// UPLOAD IMAGE TO FIREBASE STORAGE
-  Future<String> uploadImage(Uint8List imageBytes) async {
-    try {
-      final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child("fire_images")
-          .child("$fileName.jpg");
-
-      UploadTask uploadTask = ref.putData(
-        imageBytes,
-        SettableMetadata(contentType: "image/jpeg"),
-      );
-
-      TaskSnapshot snapshot = await uploadTask;
-
-      String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      return downloadUrl;
-    } catch (e) {
-      throw Exception("Image upload failed: $e");
-    }
-  }
-
-  /// GET USER LOCATION
+  /// GET LOCATION
   Future<Position> getLocation() async {
+
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
     if (!serviceEnabled) {
@@ -103,7 +91,7 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      throw Exception("Location permissions permanently denied.");
+      throw Exception("Location permission permanently denied.");
     }
 
     return await Geolocator.getCurrentPosition(
@@ -113,39 +101,43 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
 
   /// REPORT FIRE
   Future<void> reportFire() async {
+
+    if (selectedFireType == null ||
+        selectedFireSize == null ||
+        evacuationStatus == null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fire details")),
+      );
+      return;
+    }
+
     try {
+
       setState(() {
         isLoading = true;
       });
 
       Position position = await getLocation();
 
-      double latitude = position.latitude;
-      double longitude = position.longitude;
-
-      String imageUrl = "";
-
-      if (_imageBytes != null) {
-        imageUrl = await uploadImage(_imageBytes!);
-      }
-
       await service.submitReport(
-        description: descriptionController.text,
-        imageUrl: imageUrl,
-        lat: latitude,
-        lon: longitude,
-        name: nameController.text.isEmpty ? null : nameController.text,
-        phone: phoneController.text.isEmpty ? null : phoneController.text,
+        fireType: selectedFireType!,
+        fireSize: selectedFireSize!,
+        peopleTrapped: int.tryParse(peopleController.text) ?? 0,
+        evacuationStatus: evacuationStatus!,
+        lat: position.latitude,
+        lon: position.longitude,
+        name: nameController.text.isEmpty ? null : nameController.text.trim(),
+        phone: phoneController.text.isEmpty ? null : phoneController.text.trim(),
       );
 
       setState(() {
         isLoading = false;
-        _imageBytes = null;
       });
 
-      descriptionController.clear();
       nameController.clear();
       phoneController.clear();
+      peopleController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -153,7 +145,9 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
           backgroundColor: Colors.green,
         ),
       );
+
     } catch (e) {
+
       setState(() {
         isLoading = false;
       });
@@ -169,6 +163,7 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Report Fire"),
@@ -186,7 +181,7 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
             },
           ),
           TextButton(
-            child: const Text("Contacts",
+            child: const Text("Emmergency Contacts",
                 style: TextStyle(color: Colors.white)),
             onPressed: () {
               Navigator.push(
@@ -197,7 +192,7 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
             },
           ),
           TextButton(
-            child: const Text("Register",
+            child: const Text("Stations Registration",
                 style: TextStyle(color: Colors.white)),
             onPressed: () {
               Navigator.push(
@@ -209,11 +204,13 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
           ),
         ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(
           child: Column(
             children: [
+
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
@@ -221,7 +218,9 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
+
               const SizedBox(height: 15),
+
               TextField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
@@ -230,25 +229,79 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
+
               const SizedBox(height: 15),
-              TextField(
-                controller: descriptionController,
+
+              DropdownButtonFormField<String>(
+                value: selectedFireType,
                 decoration: const InputDecoration(
-                  labelText: "Describe the fire",
+                  labelText: "Type of Fire 🔥",
+                  border: OutlineInputBorder(),
+                ),
+                items: fireTypes.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedFireType = value;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 15),
+
+              DropdownButtonFormField<String>(
+                value: selectedFireSize,
+                decoration: const InputDecoration(
+                  labelText: "Size of Fire",
+                  border: OutlineInputBorder(),
+                ),
+                items: fireSizes.map((size) {
+                  return DropdownMenuItem(
+                    value: size,
+                    child: Text(size),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedFireSize = value;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 15),
+
+              TextField(
+                controller: peopleController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Number of people trapped or injured",
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 20),
-
-              _imageBytes != null
-                  ? Image.memory(_imageBytes!, height: 150)
-                  : const Text("No image selected"),
 
               const SizedBox(height: 10),
 
-              ElevatedButton(
-                onPressed: pickImage,
-                child: const Text("📷 Upload Photo"),
+              DropdownButtonFormField<String>(
+                value: evacuationStatus,
+                decoration: const InputDecoration(
+                  labelText: "Evacuation Status",
+                  border: OutlineInputBorder(),
+                ),
+                items: evacuationOptions.map((status) {
+                  return DropdownMenuItem(
+                    value: status,
+                    child: Text(status),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    evacuationStatus = value;
+                  });
+                },
               ),
 
               const SizedBox(height: 30),
@@ -282,30 +335,37 @@ class SafetyTipsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Fire Safety Tips"),
         backgroundColor: Colors.orange,
       ),
+
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: const [
+
           ListTile(
             leading: Icon(Icons.warning, color: Colors.red),
             title: Text("Stay calm and evacuate immediately."),
           ),
+
           ListTile(
             leading: Icon(Icons.warning, color: Colors.red),
             title: Text("Do not use elevators during a fire."),
           ),
+
           ListTile(
             leading: Icon(Icons.warning, color: Colors.red),
             title: Text("Cover nose and mouth with cloth to avoid smoke."),
           ),
+
           ListTile(
             leading: Icon(Icons.warning, color: Colors.red),
             title: Text("Stay low to the ground when escaping smoke."),
           ),
+
           ListTile(
             leading: Icon(Icons.warning, color: Colors.red),
             title: Text("Call emergency services immediately."),
@@ -320,7 +380,11 @@ class EmergencyContactsScreen extends StatelessWidget {
   const EmergencyContactsScreen({super.key});
 
   Future<void> callNumber(String number) async {
-    final Uri phoneUri = Uri(scheme: 'tel', path: number);
+
+    final Uri phoneUri = Uri(
+      scheme: 'tel',
+      path: number,
+    );
 
     if (await canLaunchUrl(phoneUri)) {
       await launchUrl(phoneUri);
@@ -329,14 +393,17 @@ class EmergencyContactsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Emergency Contacts"),
         backgroundColor: Colors.blue,
       ),
+
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+
           ListTile(
             leading: const Icon(Icons.local_fire_department, color: Colors.red),
             title: const Text("Fire Department"),
@@ -344,7 +411,9 @@ class EmergencyContactsScreen extends StatelessWidget {
             trailing: const Icon(Icons.call),
             onTap: () => callNumber("999"),
           ),
+
           const Divider(),
+
           ListTile(
             leading: const Icon(Icons.local_police, color: Colors.blue),
             title: const Text("Police"),
@@ -352,7 +421,9 @@ class EmergencyContactsScreen extends StatelessWidget {
             trailing: const Icon(Icons.call),
             onTap: () => callNumber("999"),
           ),
+
           const Divider(),
+
           ListTile(
             leading: const Icon(Icons.local_hospital, color: Colors.green),
             title: const Text("Ambulance"),

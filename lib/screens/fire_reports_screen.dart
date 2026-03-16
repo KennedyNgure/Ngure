@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class FireReportsScreen extends StatefulWidget {
-  const FireReportsScreen({super.key});
+  final String filter; // "today", "week", "all"
+
+  const FireReportsScreen({super.key, required this.filter});
 
   @override
   State<FireReportsScreen> createState() => _FireReportsScreenState();
@@ -10,130 +13,124 @@ class FireReportsScreen extends StatefulWidget {
 
 class _FireReportsScreenState extends State<FireReportsScreen> {
   final TextEditingController searchController = TextEditingController();
-  String searchTimestamp = "";
+  String searchQuery = "";
 
-  Future<void> deleteReportsByTimestamp() async {
-    if (searchTimestamp.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter timestamp first")),
-      );
-      return;
-    }
+  DateTime getStartOfToday() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
 
+  DateTime getStartOfWeek() {
+    final now = DateTime.now();
+    return now.subtract(Duration(days: now.weekday - 1));
+  }
+
+  bool matchesSearch(Map<String, dynamic> report) {
+    if (searchQuery.isEmpty) return true;
+
+    String timestamp = report["timestamp"] != null
+        ? DateFormat("dd MMM yyyy HH:mm").format(report["timestamp"].toDate())
+        : "";
+    String station = report["station_name"] ?? "";
+    String reporter = report["reporterName"] ?? "";
+    String status = report["status"] ?? "";
+
+    return timestamp.toLowerCase().contains(searchQuery.toLowerCase()) ||
+        station.toLowerCase().contains(searchQuery.toLowerCase()) ||
+        reporter.toLowerCase().contains(searchQuery.toLowerCase()) ||
+        status.toLowerCase().contains(searchQuery.toLowerCase());
+  }
+
+  Future<void> deleteReport(String docId) async {
     try {
-      QuerySnapshot snapshot =
-      await FirebaseFirestore.instance.collection("reports").get();
-
-      for (var doc in snapshot.docs) {
-        var data = doc.data() as Map<String, dynamic>;
-
-        if (data["timestamp"] != null) {
-          String time = data["timestamp"].toDate().toString();
-
-          if (time.contains(searchTimestamp)) {
-            await FirebaseFirestore.instance
-                .collection("reports")
-                .doc(doc.id)
-                .delete();
-          }
-        }
-      }
-
+      await FirebaseFirestore.instance.collection("reports").doc(docId).delete();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Reports deleted successfully"),
+          content: Text("Report deleted successfully"),
           backgroundColor: Colors.red,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting reports: $e")),
+        SnackBar(content: Text("Error deleting report: $e")),
       );
     }
   }
 
-  void confirmDelete() {
+  void viewReportDetails(Map<String, dynamic> report) {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Delete Reports"),
-          content:
-          const Text("Delete all reports with this timestamp?"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              style:
-              ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                Navigator.pop(context);
-                deleteReportsByTimestamp();
-              },
-              child: const Text("Delete"),
-            )
-          ],
-        );
-      },
+      builder: (context) => AlertDialog(
+        title: const Text("Fire Incident Details"),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Fire Type: ${report["fireType"] ?? "Unknown"}"),
+              Text("Fire Size: ${report["fireSize"] ?? "Unknown"}"),
+              Text("People Trapped: ${report["peopleTrapped"] ?? 0}"),
+              Text("Evacuation Status: ${report["evacuationStatus"] ?? "Unknown"}"),
+              Text("Reporter Name: ${report["reporterName"] ?? "Unknown"}"),
+              Text("Reporter Phone: ${report["reporterPhone"] ?? "Unknown"}"),
+              Text("Status: ${report["status"] ?? "Unknown"}"),
+              Text("Station: ${report["station_name"] ?? "Unknown"}"),
+              Text("Latitude: ${report["latitude"] ?? "Unknown"}"),
+              Text("Longitude: ${report["longitude"] ?? "Unknown"}"),
+              if (report["timestamp"] != null)
+                Text(
+                  "Timestamp: ${DateFormat("dd MMM yyyy HH:mm").format(report["timestamp"].toDate())}",
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
+        ],
+      ),
     );
-  }
-
-  bool matchesSearch(Map<String, dynamic> report) {
-    if (searchTimestamp.isEmpty) return true;
-
-    if (report["timestamp"] == null) return false;
-
-    String time = report["timestamp"].toDate().toString();
-
-    return time.contains(searchTimestamp);
   }
 
   @override
   Widget build(BuildContext context) {
+    DateTime startOfToday = getStartOfToday();
+    DateTime startOfWeek = getStartOfWeek();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Fire Reports"),
+        title: Text(
+          widget.filter == "today"
+              ? "Fires Today"
+              : widget.filter == "week"
+              ? "Fires This Week"
+              : "All Fire Reports",
+        ),
         backgroundColor: Colors.red,
       ),
       body: Column(
         children: [
+          /// Search bar
           Padding(
             padding: const EdgeInsets.all(10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: searchController,
-                    decoration: const InputDecoration(
-                      hintText: "Search by timestamp...",
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        searchTimestamp = value;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 15, vertical: 18),
-                  ),
-                  onPressed: confirmDelete,
-                  icon: const Icon(Icons.delete),
-                  label: const Text("Delete"),
-                ),
-              ],
+            child: TextField(
+              controller: searchController,
+              decoration: const InputDecoration(
+                hintText:
+                "Search by timestamp, station, reporter, status...",
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
             ),
           ),
+
+          /// Fire Reports List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -142,76 +139,74 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(
-                      child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 var reports = snapshot.data!.docs;
 
                 var filteredReports = reports.where((doc) {
                   var data = doc.data() as Map<String, dynamic>;
+                  if (data["timestamp"] == null) return false;
+
+                  DateTime time = data["timestamp"].toDate();
+
+                  if (widget.filter == "today") {
+                    if (!time.isAfter(startOfToday)) return false;
+                  } else if (widget.filter == "week") {
+                    if (!time.isAfter(startOfWeek)) return false;
+                  }
+
                   return matchesSearch(data);
                 }).toList();
 
                 if (filteredReports.isEmpty) {
-                  return const Center(
-                    child: Text("No reports found"),
-                  );
+                  return const Center(child: Text("No reports found"));
                 }
 
                 return ListView.builder(
                   itemCount: filteredReports.length,
                   itemBuilder: (context, index) {
-                    var report = filteredReports[index].data()
-                    as Map<String, dynamic>;
+                    var doc = filteredReports[index];
+                    var report = doc.data() as Map<String, dynamic>;
 
-                    String description =
-                        report["description"] ?? "Fire Incident";
-                    String latitude =
-                        report["latitude"]?.toString() ?? "Unknown";
-                    String longitude =
-                        report["longitude"]?.toString() ?? "Unknown";
-                    String station =
-                        report["nearest_station"] ?? "Unknown";
-
-                    String time = report["timestamp"] != null
-                        ? report["timestamp"].toDate().toString()
+                    String timestamp = report["timestamp"] != null
+                        ? DateFormat("dd MMM yyyy HH:mm")
+                        .format(report["timestamp"].toDate())
                         : "No timestamp";
+                    String station = report["station_name"] ?? "Unknown";
+                    String reporter = report["reporterName"] ?? "Unknown";
+                    String status = report["status"] ?? "Unknown";
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      margin:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      child: ListTile(
+                        title: Text("Reporter: $reporter"),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                    Icons.local_fire_department,
-                                    color: Colors.red),
-                                const SizedBox(width: 8),
-                                Text(
-                                  description,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text("Latitude: $latitude"),
-                            Text("Longitude: $longitude"),
-                            const SizedBox(height: 5),
                             Text("Station: $station"),
-                            const SizedBox(height: 5),
-                            Text(
-                              "Timestamp: $time",
-                              style: const TextStyle(
-                                  color: Colors.grey),
+                            Text("Timestamp: $timestamp"),
+                            Text("Status: $status"),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => viewReportDetails(report),
+                              child: const Text("View"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () => deleteReport(doc.id),
+                              child: const Icon(Icons.delete),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                              ),
                             ),
                           ],
                         ),

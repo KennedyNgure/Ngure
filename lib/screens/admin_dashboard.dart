@@ -4,10 +4,18 @@ import 'report_fire_screen.dart';
 import 'registered_stations_screen.dart';
 import 'fire_reports_screen.dart';
 
-class AdminDashboard extends StatelessWidget {
+class AdminDashboard extends StatefulWidget {
   final bool isAdmin;
 
   const AdminDashboard({super.key, required this.isAdmin});
+
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  TextEditingController searchController = TextEditingController();
+  String searchQuery = "";
 
   DateTime getStartOfToday() {
     final now = DateTime.now();
@@ -19,34 +27,13 @@ class AdminDashboard extends StatelessWidget {
     return now.subtract(Duration(days: now.weekday - 1));
   }
 
-  Widget buildStatistics(BuildContext context) {
-    DateTime today = getStartOfToday();
-    DateTime weekStart = getStartOfWeek();
-
+  /// Top Cards: Fire Reports + Stations
+  Widget buildTopCards(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection("reports").snapshots(),
       builder: (context, reportSnapshot) {
         if (!reportSnapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
-        }
-
-        int todayCount = 0;
-        int weekCount = 0;
-
-        for (var doc in reportSnapshot.data!.docs) {
-          var data = doc.data() as Map<String, dynamic>;
-
-          if (data["timestamp"] != null) {
-            DateTime time = data["timestamp"].toDate();
-
-            if (time.isAfter(today)) {
-              todayCount++;
-            }
-
-            if (time.isAfter(weekStart)) {
-              weekCount++;
-            }
-          }
         }
 
         return StreamBuilder<QuerySnapshot>(
@@ -56,152 +43,80 @@ class AdminDashboard extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
 
-            int stationCount = stationSnapshot.data!.docs.length;
             int reportCount = reportSnapshot.data!.docs.length;
+            int stationCount = stationSnapshot.data!.docs.length;
 
-            return SizedBox(
-              height: 150,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-
-                  /// Fires Today
-                  Card(
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                /// Fire Reports
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                        const FireReportsScreen(filter: "all"),
+                      ),
+                    );
+                  },
+                  child: Card(
                     elevation: 4,
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
                     child: Container(
                       width: 160,
                       padding: const EdgeInsets.all(20),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.today, color: Colors.red, size: 40),
+                          const Icon(Icons.local_fire_department,
+                              color: Colors.red, size: 40),
                           const SizedBox(height: 10),
-                          const Text(
-                            "Fires Today",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          const Text("Fire Reports",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           Text(
-                            todayCount.toString(),
+                            reportCount.toString(),
                             style: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                            ),
+                                fontSize: 26, fontWeight: FontWeight.bold),
                           )
                         ],
                       ),
                     ),
                   ),
+                ),
 
-                  /// Fires This Week
-                  Card(
+                /// Stations
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                        const RegisteredStationsScreen(),
+                      ),
+                    );
+                  },
+                  child: Card(
                     elevation: 4,
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
                     child: Container(
                       width: 160,
                       padding: const EdgeInsets.all(20),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.calendar_month,
-                              color: Colors.orange, size: 40),
+                          const Icon(Icons.fire_truck,
+                              color: Colors.blue, size: 40),
                           const SizedBox(height: 10),
-                          const Text(
-                            "This Week",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          const Text("Stations",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           Text(
-                            weekCount.toString(),
+                            stationCount.toString(),
                             style: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                            ),
+                                fontSize: 26, fontWeight: FontWeight.bold),
                           )
                         ],
                       ),
                     ),
                   ),
-
-                  /// Stations Card
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                          const RegisteredStationsScreen(),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Container(
-                        width: 160,
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.fire_truck,
-                                color: Colors.blue, size: 40),
-                            const SizedBox(height: 10),
-                            const Text(
-                              "Stations",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              stationCount.toString(),
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  /// Fire Reports Card
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const FireReportsScreen(),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Container(
-                        width: 160,
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.local_fire_department,
-                                color: Colors.red, size: 40),
-                            const SizedBox(height: 10),
-                            const Text(
-                              "Fire Reports",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              reportCount.toString(),
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             );
           },
         );
@@ -209,48 +124,160 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  Widget buildStationPerformance() {
+  /// Fire Statistics Cards
+  Widget buildStatistics() {
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+    DateTime weekStart = now.subtract(Duration(days: now.weekday - 1));
+    DateTime monthStart = DateTime(now.year, now.month, 1);
+    DateTime yearStart = DateTime(now.year, 1, 1);
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection("reports").snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+      builder: (context, reportSnapshot) {
+        if (!reportSnapshot.hasData) return const CircularProgressIndicator();
 
-        Map<String, int> stationCounts = {};
+        int todayCount = 0;
+        int weekCount = 0;
+        int monthCount = 0;
+        int yearCount = 0;
 
-        for (var doc in snapshot.data!.docs) {
+        for (var doc in reportSnapshot.data!.docs) {
           var data = doc.data() as Map<String, dynamic>;
-          String station = data["nearest_station"] ?? "Unknown";
+          if (data["timestamp"] == null) continue;
 
-          stationCounts[station] = (stationCounts[station] ?? 0) + 1;
+          DateTime time = data["timestamp"].toDate();
+          if (time.isAfter(today)) todayCount++;
+          if (time.isAfter(weekStart)) weekCount++;
+          if (time.isAfter(monthStart)) monthCount++;
+          if (time.isAfter(yearStart)) yearCount++;
         }
 
-        List<MapEntry<String, int>> sortedStations =
-        stationCounts.entries.toList()
-          ..sort((a, b) => b.value.compareTo(a.value));
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection("stations").snapshots(),
+          builder: (context, stationSnapshot) {
+            if (!stationSnapshot.hasData) return const CircularProgressIndicator();
 
-        return Column(
-          children: sortedStations.map((entry) {
-            return Card(
-              child: ListTile(
-                leading: const Icon(Icons.fire_truck, color: Colors.red),
-                title: Text(entry.key),
-                trailing: Text(
-                  "${entry.value} fires handled",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+            int stationCount = stationSnapshot.data!.docs.length;
+
+            Widget statCard(String title, int value, IconData icon, Color color) {
+              return Expanded(
+                child: Card(
+                  elevation: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(icon, color: color, size: 35),
+                        const SizedBox(height: 10),
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 5),
+                        FittedBox(
+                          child: Text(
+                            value.toString(),
+                            style: const TextStyle(
+                                fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              );
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                statCard("Fires Today", todayCount, Icons.today, Colors.red),
+                statCard("This Week", weekCount, Icons.calendar_view_week, Colors.orange),
+                statCard("This Month", monthCount, Icons.calendar_month, Colors.deepOrange),
+                statCard("This Year", yearCount, Icons.date_range, Colors.redAccent),
+                statCard("Registered Stations", stationCount, Icons.fire_truck, Colors.blue),
+              ],
             );
-          }).toList(),
+          },
         );
       },
+    );
+  }
+  /// Station Performance (This Week)
+  Widget buildStationPerformance() {
+    DateTime weekStart = getStartOfWeek();
+
+    return Column(
+      children: [
+        /// Search Bar
+        Padding(
+          padding: const EdgeInsets.all(10),
+          child: TextField(
+            controller: searchController,
+            decoration: const InputDecoration(
+              labelText: "Search Station",
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              setState(() {
+                searchQuery = value.toLowerCase();
+              });
+            },
+          ),
+        ),
+
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection("reports").snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const CircularProgressIndicator();
+            }
+
+            Map<String, int> stationCounts = {};
+            for (var doc in snapshot.data!.docs) {
+              var data = doc.data() as Map<String, dynamic>;
+              if (data["timestamp"] == null) continue;
+
+              DateTime time = data["timestamp"].toDate();
+              if (!time.isAfter(weekStart)) continue;
+
+              String station = data["nearest_station"] ?? "Unknown";
+              stationCounts[station] = (stationCounts[station] ?? 0) + 1;
+            }
+
+            var stations = stationCounts.entries.where((entry) {
+              return entry.key.toLowerCase().contains(searchQuery);
+            }).toList();
+
+            stations.sort((a, b) => b.value.compareTo(a.value));
+
+            return Column(
+              children: stations.map((entry) {
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.fire_truck, color: Colors.red),
+                    title: Text(entry.key),
+                    trailing: Text(
+                      "${entry.value} fires handled",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!isAdmin) {
+    if (!widget.isAdmin) {
       return const Scaffold(
         body: Center(
           child: Text(
@@ -292,15 +319,17 @@ class AdminDashboard extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
+            buildTopCards(context),
+            const SizedBox(height: 30),
             const Text(
               "Fire Statistics",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 15),
-            buildStatistics(context),
+            buildStatistics(),
             const SizedBox(height: 30),
             const Text(
-              "Station Performance",
+              "Station Performance (This Week)",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),

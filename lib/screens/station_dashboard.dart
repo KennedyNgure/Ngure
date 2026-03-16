@@ -22,10 +22,9 @@ class _StationDashboardState extends State<StationDashboard> {
   @override
   void initState() {
     super.initState();
-    loadStationLocation();
   }
 
-  /// Fetch station location from Firestore
+  /// Load station coordinates from Firestore
   Future<void> loadStationLocation() async {
     var doc = await FirebaseFirestore.instance
         .collection("stations")
@@ -36,13 +35,13 @@ class _StationDashboardState extends State<StationDashboard> {
       var data = doc.data()!;
 
       setState(() {
-        stationLatitude = data["latitude"];
-        stationLongitude = data["longitude"];
+        stationLatitude = (data["latitude"] as num).toDouble();
+        stationLongitude = (data["longitude"] as num).toDouble();
       });
     }
   }
 
-  /// Calculate distance using Haversine formula
+  /// Haversine distance calculation
   double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
     const double R = 6371;
 
@@ -61,6 +60,22 @@ class _StationDashboardState extends State<StationDashboard> {
     return R * c;
   }
 
+  /// Update fire status
+  Future<void> markAsHandled(String reportId) async {
+    await FirebaseFirestore.instance
+        .collection("reports")
+        .doc(reportId)
+        .update({"status": "handled"});
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Fire marked as handled"),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,18 +85,17 @@ class _StationDashboardState extends State<StationDashboard> {
         actions: [
           TextButton.icon(
             onPressed: () {
-              if (widget.stationName.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        StationProfile(stationName: widget.stationName),
-                  ),
-                );
-              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      StationProfile(stationName: widget.stationName),
+                ),
+              );
             },
             icon: const Icon(Icons.person, color: Colors.white),
-            label: const Text("Profile", style: TextStyle(color: Colors.white)),
+            label: const Text("Profile",
+                style: TextStyle(color: Colors.white)),
           ),
           TextButton.icon(
             onPressed: () {
@@ -93,36 +107,16 @@ class _StationDashboardState extends State<StationDashboard> {
               );
             },
             icon: const Icon(Icons.logout, color: Colors.white),
-            label: const Text("Logout", style: TextStyle(color: Colors.white)),
+            label:
+            const Text("Logout", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            /// Warning if location not set
-            if (stationLatitude == null || stationLongitude == null)
-              Container(
-                padding: const EdgeInsets.all(10),
-                margin: const EdgeInsets.only(bottom: 10),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.warning, color: Colors.orange),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        "Station location not set. Update it in Profile.",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
 
             /// Station Card
             Card(
@@ -143,11 +137,14 @@ class _StationDashboardState extends State<StationDashboard> {
 
             const SizedBox(height: 20),
 
+            /// Quick actions
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 "Quick Actions",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
               ),
             ),
 
@@ -156,23 +153,33 @@ class _StationDashboardState extends State<StationDashboard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+
                 ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                  ),
+                  icon: const Icon(Icons.warning),
+                  label: const Text("New Alert"),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            NewFireReportScreen(stationName: widget.stationName),
+                        builder: (context) => NewFireReportScreen(
+                          stationName: widget.stationName,
+                        ),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.warning),
-                  label: const Text("New Alert"),
                 ),
+
                 const SizedBox(width: 20),
+
                 ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                  ),
+                  icon: const Icon(Icons.chat),
+                  label: const Text("Inter-station Communication"),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -184,35 +191,49 @@ class _StationDashboardState extends State<StationDashboard> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.chat),
-                  label: const Text("Interstation Communication"),
                 ),
               ],
             ),
 
             const SizedBox(height: 25),
 
+            /// Fire reports title
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 "Incoming Fire Reports",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
             const SizedBox(height: 10),
 
-            /// Fire Reports
+            /// Fire reports list
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection("reports")
+                    .where("status", isEqualTo: "pending")
                     .orderBy("timestamp", descending: true)
+                    .limit(20)
                     .snapshots(),
+
                 builder: (context, snapshot) {
 
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                        child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData ||
+                      snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text("No pending fire reports"),
+                    );
                   }
 
                   var reports = snapshot.data!.docs;
@@ -221,13 +242,25 @@ class _StationDashboardState extends State<StationDashboard> {
                     itemCount: reports.length,
                     itemBuilder: (context, index) {
 
+                      var doc = reports[index];
                       var report =
-                      reports[index].data() as Map<String, dynamic>;
+                      doc.data() as Map<String, dynamic>;
 
-                      double reportLat = report["latitude"];
-                      double reportLon = report["longitude"];
+                      /// Safe latitude
+                      double reportLat =
+                      (report["latitude"] is num)
+                          ? (report["latitude"] as num)
+                          .toDouble()
+                          : 0.0;
 
-                      double distance = 0;
+                      /// Safe longitude
+                      double reportLon =
+                      (report["longitude"] is num)
+                          ? (report["longitude"] as num)
+                          .toDouble()
+                          : 0.0;
+
+                      double distance = 0.0;
 
                       if (stationLatitude != null &&
                           stationLongitude != null) {
@@ -239,29 +272,101 @@ class _StationDashboardState extends State<StationDashboard> {
                         );
                       }
 
-                      /// Only show reports within 20km
+                      /// Only show within 20km
                       if (stationLatitude != null &&
                           stationLongitude != null &&
                           distance > 20) {
-                        return const SizedBox();
+                        return const SizedBox.shrink();
                       }
 
+                      Timestamp? timestamp =
+                      report["timestamp"] as Timestamp?;
+
                       return Card(
-                        child: ListTile(
-                          leading: const Icon(
-                            Icons.local_fire_department,
-                            color: Colors.red,
-                          ),
-                          title: Text(report["description"] ?? "Fire Report"),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        elevation: 4,
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 6),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
                             children: [
+
+                              Row(
+                                children: const [
+                                  Icon(
+                                    Icons.local_fire_department,
+                                    color: Colors.red,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "Active Fire Alert",
+                                    style: TextStyle(
+                                      fontWeight:
+                                      FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const Divider(),
+
+                              Text(
+                                  "Reporter: ${report["name"] ?? "Unknown"}"),
+                              Text(
+                                  "Phone: ${report["phone"] ?? "N/A"}"),
+                              Text(
+                                  "Description: ${report["description"] ?? ""}"),
+
+                              const SizedBox(height: 6),
+
+                              Text(
+                                  "Fire Type: ${report["fireType"] ?? "Unknown"}"),
+                              Text(
+                                  "Fire Size: ${report["fireSize"] ?? "Unknown"}"),
+
+                              const SizedBox(height: 6),
+
+                              Text(
+                                  "People Trapped/Injured: ${report["peopleTrapped"] ?? "0"}"),
+                              Text(
+                                  "Evacuation Status: ${report["evacuationStatus"] ?? "Unknown"}"),
+
+                              const SizedBox(height: 6),
+
                               Text("Location: $reportLat, $reportLon"),
-                              Text("Distance: ${distance.toStringAsFixed(2)} km"),
-                              if (report["timestamp"] != null)
+                              Text(
+                                  "Distance: ${distance.toStringAsFixed(2)} km"),
+
+                              if (timestamp != null)
                                 Text(
-                                  report["timestamp"].toDate().toString(),
+                                  "Reported: ${timestamp.toDate()}",
+                                  style: const TextStyle(
+                                      fontSize: 12),
                                 ),
+
+                              const SizedBox(height: 10),
+
+                              Align(
+                                alignment:
+                                Alignment.centerRight,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton
+                                      .styleFrom(
+                                    backgroundColor:
+                                    Colors.green,
+                                  ),
+                                  icon:
+                                  const Icon(Icons.check),
+                                  label: const Text(
+                                      "Mark as Handled"),
+                                  onPressed: () {
+                                    markAsHandled(doc.id);
+                                  },
+                                ),
+                              ),
                             ],
                           ),
                         ),
