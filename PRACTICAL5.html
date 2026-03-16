@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport"content="width=device-width,initial-scale=1.0">
+        <title>Document</title>
+        <style>
+            .login{
+                border: 3px solid yellow;
+                max-width: max-content;
+                padding: 200px 300px;
+                margin: 10px auto;
+            }
+            input[type=button]{
+                display: block;
+                background-color: blanchedalmond;
+                margin: 0 auto;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="login">
+            <form>
+                <label for="email">Enter Your Email</label>
+                <input type="email"name="email"id="email"/>
+                <br/>
+                <label for="password">Enter Your Password</label>
+                <input type="password"name="password"id="password"/>
+                <br/>
+                <input type="button"value="LOGIN"/><br/>
+                <button type="submit">LOGIN</button><br/><br>
+                <button type="reset">Reset Password?</button><br/><br/>
+                <a href="">Forgot Password?</a><br><br>
+                <form>
+                    <label for="Gender">Choose Your Gender:</label><br/>
+                <input type="radio"name="gender"value="Male"id="Male"/><label for="Male">Male</label><br/>
+                <input type="radio"name="gender"value="Female"id="Female"/><label for="Female">Female</label><br/>
+                <input type="radio"name="gender"value="Rather Not Say"id="Rather Not Say"/><label for="Rather Not Say">Rather Not Say</label>
+                </form><br/>
+                <form>
+                    <label for="Level of Education">Level of Education:</label><br/>
+                    <input type="checkbox"name="Primary School"value="Primary School"id="Primary School"/><label for="Primary School">Primary School</label><br/>
+                    <input type="checkbox"name="Secondary School"value="Secondary School"id="Secondary School"/><label for="Secondary School">Sceondary School</label><br/>
+                    <input type="checkbox"name="University"value="University"id="University"/><label for="University">University</label><br/>
+                    <input type="checkbox"name="College"value="College"id="College"/><label for="College">Colllege</label><br/>
+                </form><br/>
+                <form>
+                    <label for="Education Background">Education Background:</label><br/>
+                    <select id="Level of Education"name="Level of Education">
+                        <option value="Primary School">Primary School</option>
+                        <option value="Secondary School">Secondary School</option>
+                        <option value="University">University</option>
+                        <option value="College">College</option>
+                    </select>
+                </form><br/>
+                <form>
+                    <label for="Education Background">Education Background:</label><br/>
+                    <select id="Level of Education"name="Level of Education"size="3">
+                        <option value="Primary School">Primary School</option>
+                        <option value="Secondary School">Secondary School</option>
+                        <option value="University">University</option>
+                        <option value="College">College</option>
+                    </select>
+                </form><br/>
+                <form>
+                    <label for="Search">Search:</label>
+                    <input type="search"id="Search"name="Query"placeholder="">
+                </form>
+            </form>
+        </div>
+    </body>
+</html>

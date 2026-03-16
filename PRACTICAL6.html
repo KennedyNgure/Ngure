@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport"content="width=device-width,initial-scale=1.0">
+        <title>"Pimp My Shoes"Contest Entry Form</title>
+        <style>
+            input[type=button]{
+                display: block;
+                background-color: blanchedalmond;
+                margin: 0 auto;
+            }
+            h2{
+                font-size: larger;
+            }
+            h3{
+                font-size: larger;
+            }
+            div{
+                border-style: solid black;
+                shape-margin: 150px 200px;
+            }
+        </style>
+    </head>
+    <body>
+            <h1>"Pimp My Shoes"Contest Entry Form</h1>
+            <h2>Want to trade in your old sneakers for a custom pair of forefields?Make a case for why your shoes have got to go and you may be one<br/>of ten lucky winners.<br/><br/>Contest Entry Information</h2>
+            <form>
+                <label for="Name">Name</label>
+                <input type="text"name="Name"id="Name"/>
+                <br/>
+                <label for="Email Address">Email Address</label>
+                <input type="email"name="Email Address"id="Email Address"/>
+                <br/>
+                <label for="Telephone Number">Telephone Number</label>
+                <input type="number"name="Telephone Number"id="Telephone Number"/>
+                <br/><br/>
+                <label for="My shoes are SO old">My shoes are SO old...</label><br/>
+                <textarea id="paragraph"rows="5"cols="80"placeholder="Not more than 300 words"></textarea>
+                <br/>
+                <h3>Design your cusom Forefields:</h3><br/><br/>
+                <fieldset>
+                    <legend>Custom Shoe Design</legend>
+                <fieldset>
+                    <legend>Colour(Choose one):</legend>
+                        <input type="radio"name="colour"value="Red"id="Red"/><label for="Red">Red</label><br/>
+                        <input type="radio"name="colour"value="Blue"id="Blue"/><label for="Blue">Blue</label><br/>
+                        <input type="radio"name="colour"value="Black"id="Black"/><label for="Black">Black</label>
+                        <input type="radio"name="colour"value="Silver"id="Silver"/><label for="Silver">Silver</label>
+                </fieldset>
+                <fieldset>
+                    <legend>Features(Choose as Many as you want)</legend>
+                        <input type="checkbox"name="Sparkley Laces"value="Sparkley Laces"id="Sparkley Laces"/><label for="Sparkley Laces">Sparkley Laces</label><br/>
+                        <input type="checkbox"name="Metallic Logo"value="Metallic Logo"id="Metallic Logo"/><label for="Metallic Logo">Metallic Logo</label><br/>
+                        <input type="checkbox"name="Light-up heels"value="Light-up heels"id="Light-up heels"/><label for="Light-up heels">Light-up heels</label><br/>
+                        <input type="checkbox"name="MP3-enabled"value="MP3-enabled"id="MP3-enabled"/><label for="MP3-enabled">MP3-enabled</label><br/>
+                </fieldset>
+                <fieldset>
+                    <legend>Size</legend>
+                        <select id="Size"name="Size">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                </fieldset>
+                </fieldset><br/><br/>
+                <button type="submit"value="Pimp My Shoes">Pimp My Shoes</button>
+                <button type="reset">Reset</button>
+                </form>
+            </form>
+        </div>
+    </body>
+</html>

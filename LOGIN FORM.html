@@ -1,0 +1,51 @@
+<html lang=""en>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport"content="width=device-width,initial-scale+1.0">
+        <title>
+           LOGIN FORM
+        </title>
+        <style>
+            body{
+                background-color: chartreuse;
+            }
+            a{
+                behavior: var(-100px);
+            }
+            button{
+                background-color: blue;
+                background-position: center;
+                height: 40px;
+                width: 160px;
+                border-radius: 20px;
+                margin: auto;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <form name="LOGIN"method="post"action="login.php">
+            <h1>
+                LOGIN FORM
+            </h1>
+            NAME<input type="text"            
+            name="USERNAME"
+            value=""/>
+            <br/>           
+            PASSWORD<input type="password"          
+            name="Password"
+            value=""/>
+            <br/>
+            <button type="submit">
+                SIGNUP
+            </button>
+            <button type="reset">
+            RESET
+            </button>
+            <br/>
+            <a href="reset.html">
+            Forgot Your Password?
+            </a>
+        </form>
+    </body>
+</html>

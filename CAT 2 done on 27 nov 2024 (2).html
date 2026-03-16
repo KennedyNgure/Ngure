@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Registration Form</title>
+    <style>
+        button{
+            width: 80px;
+            height: 20px;
+            float: left;
+            margin-left: 200px;
+        }
+        input{
+            border-radius: 5px;
+        }
+        .j{
+            margin-left: 80px;
+        }
+        .a{margin-right: 54px;}
+        .b{margin-right: 60px;}
+        .c{margin-right: 2px;}
+        .d{margin-right: 84px;}
+        .e{margin-right: 30px;}
+        .f{margin-right: 60px;}
+        .g{margin-right: 60px;}
+        .h{margin-right: 30px}
+        .i{margin-right: 40px;}
+    </style>
+</head>
+<body>
+	<h2>Registration Form</h2>
+	<form action="#" method="post">
+		<label class="a">Full Name:</label><input class="block"type="text"name="fullname"placeholder="as"></input><span style="color: brown;">User name must be at least 4 characters</span><br/><br/>
+		<label class="b">Password:</label><input class="block"type="password"name="password"placeholder="••"></input><span style="color: brown;">Password must be at least 4 characters</span><br/><br/>
+		<label class="c">Confirm Password:</label><input class="block"type="password"name="confirm-password"placeholder="•••••"></input><span style="color: brown;">Password must be at least 4 characters</span><br/><br/>
+		<label class="d">Email:</label><input class="block"type="email"name="email"placeholder="john@gmail"></input><span style="color: brown;">Invalid email format</span><br/><br/>
+        <div class="j">Format: john@gmail.com</div><br/>
+		<label class="e">Phone Number:</label><input class="block"type="tel"name="phone-number"placeholder="111111111111111"></input><span style="color: brown;">Invalid phone number</span><br/><br/>
+        <div class="j">Format: 0XXX-XXX-XXX</div><br/>
+		<label class="f">Zip Code:</label><input class="block"type="text"name="zip-code"placeholder="1111111111111111111111111"></input><span style="color: brown;">FInvalid zip code</span><br/><br/>
+        <div class="j">Format: Use 5 or 9 digit Zip codes</div><br/>
+		<label class="g">Card Type:</label>
+        <select id="card-type" name="card-type" required>
+			<option value="">Select a card type</option>
+			<option value="credit">Credit Card</option>
+			<option value="debit">Debit Card</option>
+		</select><br>
+		<label class="h">Card Number:</label><input class="block"type="text"name="card-number"placeholder="1111111111111111"></input><span style="color: brown;">Invalid card number format</span><br/><br/>
+        <div class="j">Format: 1111-2222-3333-4444</div><br/>
+		<label class="i">Expiry Date:</label><input class="block"type="text"name="expiry-date"placeholder="11111111111111111111111111" ></input><span style="color: brown;">Format: MM/YYYY</span><br/><br/>
+        <div class="j">Format: YYYY-MM-DD</div><br/>
+		<button type="submit">Register</button>
+        <button type="submit">Clear</button>
+	</form>
+</body>
+</html>
