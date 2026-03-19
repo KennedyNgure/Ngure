@@ -25,25 +25,44 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
     return now.subtract(Duration(days: now.weekday - 1));
   }
 
+  /// 🔍 UPDATED SEARCH FUNCTION
   bool matchesSearch(Map<String, dynamic> report) {
     if (searchQuery.isEmpty) return true;
 
+    final query = searchQuery.toLowerCase();
+
     String timestamp = report["timestamp"] != null
-        ? DateFormat("dd MMM yyyy HH:mm").format(report["timestamp"].toDate())
+        ? DateFormat("dd MMM yyyy HH:mm")
+        .format(report["timestamp"].toDate())
         : "";
+
     String station = report["station_name"] ?? "";
     String reporter = report["reporterName"] ?? "";
     String status = report["status"] ?? "";
 
-    return timestamp.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        station.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        reporter.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        status.toLowerCase().contains(searchQuery.toLowerCase());
+    /// 🆕 NEW LOCATION FIELDS
+    String ward = report["ward"] ?? "";
+    String subcounty = report["subcounty"] ?? "";
+    String county = report["county"] ?? "";
+
+    return timestamp.toLowerCase().contains(query) ||
+        station.toLowerCase().contains(query) ||
+        reporter.toLowerCase().contains(query) ||
+        status.toLowerCase().contains(query) ||
+        ward.toLowerCase().contains(query) ||
+        subcounty.toLowerCase().contains(query) ||
+        county.toLowerCase().contains(query) ||
+        "$ward $subcounty".toLowerCase().contains(query) ||
+        "$ward $subcounty $county".toLowerCase().contains(query);
   }
 
   Future<void> deleteReport(String docId) async {
     try {
-      await FirebaseFirestore.instance.collection("reports").doc(docId).delete();
+      await FirebaseFirestore.instance
+          .collection("reports")
+          .doc(docId)
+          .delete();
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Report deleted successfully"),
@@ -57,6 +76,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
     }
   }
 
+  /// 🔥 VIEW DETAILS UPDATED
   void viewReportDetails(Map<String, dynamic> report) {
     showDialog(
       context: context,
@@ -74,8 +94,12 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
               Text("Reporter Phone: ${report["reporterPhone"] ?? "Unknown"}"),
               Text("Status: ${report["status"] ?? "Unknown"}"),
               Text("Station: ${report["station_name"] ?? "Unknown"}"),
-              Text("Latitude: ${report["latitude"] ?? "Unknown"}"),
-              Text("Longitude: ${report["longitude"] ?? "Unknown"}"),
+
+              /// 🆕 LOCATION DETAILS
+              const SizedBox(height: 10),
+              Text("Ward: ${report["ward"] ?? "Unknown"}"),
+              Text("Subcounty: ${report["subcounty"] ?? "Unknown"}"),
+              Text("County: ${report["county"] ?? "Unknown"}"),
               if (report["timestamp"] != null)
                 Text(
                   "Timestamp: ${DateFormat("dd MMM yyyy HH:mm").format(report["timestamp"].toDate())}",
@@ -111,26 +135,27 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
       ),
       body: Column(
         children: [
-          /// Search bar
+
+          /// 🔍 UPDATED SEARCH BAR
           Padding(
             padding: const EdgeInsets.all(10),
             child: TextField(
               controller: searchController,
               decoration: const InputDecoration(
                 hintText:
-                "Search by timestamp, station, reporter, status...",
+                "Search by station, reporter, status, ward, subcounty, county...",
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
               onChanged: (value) {
                 setState(() {
-                  searchQuery = value;
+                  searchQuery = value.trim();
                 });
               },
             ),
           ),
 
-          /// Fire Reports List
+          /// 📋 FIRE REPORTS LIST
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -138,6 +163,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                   .orderBy("timestamp", descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
+
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -146,6 +172,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
 
                 var filteredReports = reports.where((doc) {
                   var data = doc.data() as Map<String, dynamic>;
+
                   if (data["timestamp"] == null) return false;
 
                   DateTime time = data["timestamp"].toDate();
@@ -166,6 +193,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                 return ListView.builder(
                   itemCount: filteredReports.length,
                   itemBuilder: (context, index) {
+
                     var doc = filteredReports[index];
                     var report = doc.data() as Map<String, dynamic>;
 
@@ -173,13 +201,19 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                         ? DateFormat("dd MMM yyyy HH:mm")
                         .format(report["timestamp"].toDate())
                         : "No timestamp";
+
                     String station = report["station_name"] ?? "Unknown";
                     String reporter = report["reporterName"] ?? "Unknown";
                     String status = report["status"] ?? "Unknown";
 
+                    /// 🆕 LOCATION
+                    String ward = report["ward"] ?? "Unknown";
+                    String subcounty = report["subcounty"] ?? "Unknown";
+                    String county = report["county"] ?? "Unknown";
+
                     return Card(
-                      margin:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       child: ListTile(
                         title: Text("Reporter: $reporter"),
                         subtitle: Column(
@@ -195,18 +229,18 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                           children: [
                             ElevatedButton(
                               onPressed: () => viewReportDetails(report),
-                              child: const Text("View"),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                               ),
+                              child: const Text("View"),
                             ),
                             const SizedBox(width: 8),
                             ElevatedButton(
                               onPressed: () => deleteReport(doc.id),
-                              child: const Icon(Icons.delete),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red,
                               ),
+                              child: const Icon(Icons.delete),
                             ),
                           ],
                         ),

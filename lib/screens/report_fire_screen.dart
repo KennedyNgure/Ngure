@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import 'registration_screen.dart';
 
+// =====================================
+// FIRE REPORT SERVICE
+// =====================================
 class FireReportService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -15,6 +20,9 @@ class FireReportService {
     required String evacuationStatus,
     required double lat,
     required double lon,
+    required String ward,
+    required String subcounty,
+    required String county,
     String? name,
     String? phone,
   }) async {
@@ -25,6 +33,9 @@ class FireReportService {
       "evacuationStatus": evacuationStatus,
       "latitude": lat,
       "longitude": lon,
+      "ward": ward,
+      "subcounty": subcounty,
+      "county": county,
       "reporterName": name,
       "reporterPhone": phone,
       "status": "pending",
@@ -33,15 +44,20 @@ class FireReportService {
   }
 }
 
+// =====================================
+// REPORT FIRE SCREEN
+// =====================================
 class ReportFireScreen extends StatefulWidget {
-  const ReportFireScreen({super.key});
+  final String? stationName; // <- must be declared
+
+  // Remove const because we might pass non-const stationName
+  ReportFireScreen({super.key, this.stationName});
 
   @override
   State<ReportFireScreen> createState() => _ReportFireScreenState();
 }
 
 class _ReportFireScreenState extends State<ReportFireScreen> {
-
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController peopleController = TextEditingController();
@@ -52,22 +68,17 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
   String? selectedFireSize;
   String? evacuationStatus;
 
-
   bool isLoading = false;
 
   final List<String> fireTypes = [
-    "House/building fire",
-    "Forest or bush fire",
-    "Vehicle fire",
-    "Electrical fire",
-    "Industrial fire",
+    'Forest/Bush Fire',
+    'House/Building Fire',
+    'Vehicle Fire',
+    'Electrical Fire',
+    'Industrial'
   ];
 
-  final List<String> fireSizes = [
-    "Small",
-    "Medium",
-    "Large",
-  ];
+  final List<String> fireSizes = ["Small", "Medium", "Large"];
 
   final List<String> evacuationOptions = [
     "Evacuated",
@@ -75,21 +86,15 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
     "People still inside",
   ];
 
-  /// GET LOCATION
+  // GET LOCATION
   Future<Position> getLocation() async {
-
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-    if (!serviceEnabled) {
-      throw Exception("Location services are disabled.");
-    }
+    if (!serviceEnabled) throw Exception("Location services are disabled.");
 
     LocationPermission permission = await Geolocator.checkPermission();
-
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-
     if (permission == LocationPermission.deniedForever) {
       throw Exception("Location permission permanently denied.");
     }
@@ -99,13 +104,24 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
     );
   }
 
-  /// REPORT FIRE
+  // REVERSE GEOCODING
+  Future<Map<String, String>> getLocationDetails(double lat, double lon) async {
+    final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon');
+    final response = await http.get(url, headers: {'User-Agent': 'fire_app'});
+    final data = json.decode(response.body);
+    final address = data['address'];
+
+    return {
+      "ward": address['town'] ?? address['village'] ?? address['suburb'] ?? "Unknown",
+      "subcounty": address['county'] ?? "Unknown",
+      "county": address['state'] ?? "Unknown",
+    };
+  }
+
+  // REPORT FIRE
   Future<void> reportFire() async {
-
-    if (selectedFireType == null ||
-        selectedFireSize == null ||
-        evacuationStatus == null) {
-
+    if (selectedFireType == null || selectedFireSize == null || evacuationStatus == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all fire details")),
       );
@@ -113,12 +129,10 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
     }
 
     try {
-
-      setState(() {
-        isLoading = true;
-      });
+      setState(() => isLoading = true);
 
       Position position = await getLocation();
+      final locationDetails = await getLocationDetails(position.latitude, position.longitude);
 
       await service.submitReport(
         fireType: selectedFireType!,
@@ -127,14 +141,14 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
         evacuationStatus: evacuationStatus!,
         lat: position.latitude,
         lon: position.longitude,
+        ward: locationDetails["ward"]!,
+        subcounty: locationDetails["subcounty"]!,
+        county: locationDetails["county"]!,
         name: nameController.text.isEmpty ? null : nameController.text.trim(),
         phone: phoneController.text.isEmpty ? null : phoneController.text.trim(),
       );
 
-      setState(() {
-        isLoading = false;
-      });
-
+      setState(() => isLoading = false);
       nameController.clear();
       phoneController.clear();
       peopleController.clear();
@@ -145,72 +159,49 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
           backgroundColor: Colors.green,
         ),
       );
-
     } catch (e) {
-
-      setState(() {
-        isLoading = false;
-      });
-
+      setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error sending report: $e"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Report Fire"),
         backgroundColor: Colors.red,
         actions: [
           TextButton(
-            child: const Text("Safety Tips",
-                style: TextStyle(color: Colors.white)),
+            child: const Text("Safety Tips", style: TextStyle(color: Colors.white)),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const SafetyTipsScreen()),
-              );
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const SafetyTipsScreen()));
             },
           ),
           TextButton(
-            child: const Text("Emmergency Contacts",
-                style: TextStyle(color: Colors.white)),
+            child: const Text("Emergency Contacts", style: TextStyle(color: Colors.white)),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const EmergencyContactsScreen()),
-              );
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const EmergencyContactsScreen()));
             },
           ),
           TextButton(
-            child: const Text("Stations Registration",
-                style: TextStyle(color: Colors.white)),
+            child: const Text("Stations Registration", style: TextStyle(color: Colors.white)),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => RegistrationScreen()),
-              );
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => RegistrationScreen()));
             },
           ),
         ],
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(
           child: Column(
             children: [
-
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
@@ -218,9 +209,7 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-
               const SizedBox(height: 15),
-
               TextField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
@@ -229,51 +218,27 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-
               const SizedBox(height: 15),
-
               DropdownButtonFormField<String>(
                 value: selectedFireType,
                 decoration: const InputDecoration(
                   labelText: "Type of Fire 🔥",
                   border: OutlineInputBorder(),
                 ),
-                items: fireTypes.map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedFireType = value;
-                  });
-                },
+                items: fireTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+                onChanged: (value) => setState(() => selectedFireType = value),
               ),
-
               const SizedBox(height: 15),
-
               DropdownButtonFormField<String>(
                 value: selectedFireSize,
                 decoration: const InputDecoration(
                   labelText: "Size of Fire",
                   border: OutlineInputBorder(),
                 ),
-                items: fireSizes.map((size) {
-                  return DropdownMenuItem(
-                    value: size,
-                    child: Text(size),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedFireSize = value;
-                  });
-                },
+                items: fireSizes.map((size) => DropdownMenuItem(value: size, child: Text(size))).toList(),
+                onChanged: (value) => setState(() => selectedFireSize = value),
               ),
-
               const SizedBox(height: 15),
-
               TextField(
                 controller: peopleController,
                 keyboardType: TextInputType.number,
@@ -282,45 +247,26 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-
               const SizedBox(height: 10),
-
               DropdownButtonFormField<String>(
                 value: evacuationStatus,
                 decoration: const InputDecoration(
                   labelText: "Evacuation Status",
                   border: OutlineInputBorder(),
                 ),
-                items: evacuationOptions.map((status) {
-                  return DropdownMenuItem(
-                    value: status,
-                    child: Text(status),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    evacuationStatus = value;
-                  });
-                },
+                items: evacuationOptions.map((status) => DropdownMenuItem(value: status, child: Text(status))).toList(),
+                onChanged: (value) => setState(() => evacuationStatus = value),
               ),
-
               const SizedBox(height: 30),
-
               isLoading
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 20,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                 ),
                 onPressed: reportFire,
-                child: const Text(
-                  "🚨 REPORT FIRE",
-                  style: TextStyle(fontSize: 20),
-                ),
+                child: const Text("🚨 REPORT FIRE", style: TextStyle(fontSize: 20)),
               ),
             ],
           ),
@@ -330,108 +276,209 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
   }
 }
 
+// =====================================
+// SAFETY TIPS SCREEN
+// =====================================
 class SafetyTipsScreen extends StatelessWidget {
   const SafetyTipsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Fire Safety Tips"),
         backgroundColor: Colors.orange,
       ),
-
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: const [
-
-          ListTile(
-            leading: Icon(Icons.warning, color: Colors.red),
-            title: Text("Stay calm and evacuate immediately."),
-          ),
-
-          ListTile(
-            leading: Icon(Icons.warning, color: Colors.red),
-            title: Text("Do not use elevators during a fire."),
-          ),
-
-          ListTile(
-            leading: Icon(Icons.warning, color: Colors.red),
-            title: Text("Cover nose and mouth with cloth to avoid smoke."),
-          ),
-
-          ListTile(
-            leading: Icon(Icons.warning, color: Colors.red),
-            title: Text("Stay low to the ground when escaping smoke."),
-          ),
-
-          ListTile(
-            leading: Icon(Icons.warning, color: Colors.red),
-            title: Text("Call emergency services immediately."),
-          ),
+          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Stay calm and evacuate immediately.")),
+          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Do not use elevators during a fire.")),
+          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Cover nose and mouth with cloth to avoid smoke.")),
+          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Stay low to the ground when escaping smoke.")),
+          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Call emergency services immediately.")),
         ],
       ),
     );
   }
 }
 
-class EmergencyContactsScreen extends StatelessWidget {
+// =====================================
+// EMERGENCY CONTACTS SCREEN
+// =====================================
+class EmergencyContactsScreen extends StatefulWidget {
   const EmergencyContactsScreen({super.key});
 
+  @override
+  State<EmergencyContactsScreen> createState() => _EmergencyContactsScreenState();
+}
+
+class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
+  String? selectedCounty;
+  String? selectedSubcounty;
+  String? selectedWard;
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  List<String> counties = [];
+  List<String> subcounties = [];
+  List<String> wards = [];
+
+  List<Map<String, dynamic>> stations = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadCounties();
+  }
+
+  // Load all counties from Firestore
+  Future<void> loadCounties() async {
+    final querySnapshot = await _firestore.collection('stations').get();
+    final countySet = querySnapshot.docs.map((doc) => doc['county'] as String).toSet();
+    setState(() => counties = countySet.toList());
+  }
+
+  // Load subcounties based on selected county
+  Future<void> loadSubcounties() async {
+    if (selectedCounty == null) return;
+    final querySnapshot = await _firestore
+        .collection('stations')
+        .where('county', isEqualTo: selectedCounty)
+        .get();
+    final subcountySet = querySnapshot.docs.map((doc) => doc['subcounty'] as String).toSet();
+    setState(() {
+      subcounties = subcountySet.toList();
+      selectedSubcounty = null;
+      wards = [];
+      selectedWard = null;
+      stations = [];
+    });
+  }
+
+  // Load wards based on selected county & subcounty
+  Future<void> loadWards() async {
+    if (selectedCounty == null || selectedSubcounty == null) return;
+    final querySnapshot = await _firestore
+        .collection('stations')
+        .where('county', isEqualTo: selectedCounty)
+        .where('subcounty', isEqualTo: selectedSubcounty)
+        .get();
+    final wardSet = querySnapshot.docs.map((doc) => doc['ward'] as String).toSet();
+    setState(() {
+      wards = wardSet.toList();
+      selectedWard = null;
+      stations = [];
+    });
+  }
+
+  // Load stations based on county, subcounty, and ward
+  Future<void> loadStations() async {
+    if (selectedCounty == null || selectedSubcounty == null || selectedWard == null) return;
+    final querySnapshot = await _firestore
+        .collection('stations')
+        .where('county', isEqualTo: selectedCounty)
+        .where('subcounty', isEqualTo: selectedSubcounty)
+        .where('ward', isEqualTo: selectedWard)
+        .get();
+
+    setState(() {
+      stations = querySnapshot.docs.map((doc) => doc.data()).toList();
+    });
+  }
+
+  // Call a phone number
   Future<void> callNumber(String number) async {
-
-    final Uri phoneUri = Uri(
-      scheme: 'tel',
-      path: number,
-    );
-
+    final Uri phoneUri = Uri(scheme: 'tel', path: number);
     if (await canLaunchUrl(phoneUri)) {
       await launchUrl(phoneUri);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Cannot launch phone app")),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Emergency Contacts"),
-        backgroundColor: Colors.blue,
-      ),
-
-      body: ListView(
+      appBar: AppBar(title: const Text("Emergency Contacts"), backgroundColor: Colors.blue),
+      body: Padding(
         padding: const EdgeInsets.all(20),
-        children: [
-
-          ListTile(
-            leading: const Icon(Icons.local_fire_department, color: Colors.red),
-            title: const Text("Fire Department"),
-            subtitle: const Text("Tap to call 999"),
-            trailing: const Icon(Icons.call),
-            onTap: () => callNumber("999"),
-          ),
-
-          const Divider(),
-
-          ListTile(
-            leading: const Icon(Icons.local_police, color: Colors.blue),
-            title: const Text("Police"),
-            subtitle: const Text("Tap to call 999"),
-            trailing: const Icon(Icons.call),
-            onTap: () => callNumber("999"),
-          ),
-
-          const Divider(),
-
-          ListTile(
-            leading: const Icon(Icons.local_hospital, color: Colors.green),
-            title: const Text("Ambulance"),
-            subtitle: const Text("Tap to call 999"),
-            trailing: const Icon(Icons.call),
-            onTap: () => callNumber("999"),
-          ),
-        ],
+        child: Column(
+          children: [
+            // County dropdown
+            DropdownButton<String>(
+              isExpanded: true,
+              hint: const Text("Select County"),
+              value: selectedCounty,
+              items: counties.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              onChanged: (val) {
+                setState(() => selectedCounty = val);
+                loadSubcounties();
+              },
+            ),
+            const SizedBox(height: 10),
+            // Subcounty dropdown
+            DropdownButton<String>(
+              isExpanded: true,
+              hint: const Text("Select Subcounty"),
+              value: selectedSubcounty,
+              items: subcounties.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              onChanged: (val) {
+                setState(() => selectedSubcounty = val);
+                loadWards();
+              },
+            ),
+            const SizedBox(height: 10),
+            // Ward dropdown
+            DropdownButton<String>(
+              isExpanded: true,
+              hint: const Text("Select Ward"),
+              value: selectedWard,
+              items: wards.map((w) => DropdownMenuItem(value: w, child: Text(w))).toList(),
+              onChanged: (val) {
+                setState(() => selectedWard = val);
+                loadStations();
+              },
+            ),
+            const Divider(height: 30),
+            // Station list
+            Expanded(
+              child: stations.isEmpty
+                  ? const Center(child: Text("Select ward, subcounty, and county to view stations"))
+                  : ListView.separated(
+                itemCount: stations.length,
+                separatorBuilder: (_, __) => const Divider(),
+                itemBuilder: (context, index) {
+                  final station = stations[index];
+                  return ListTile(
+                    leading: const Icon(Icons.local_fire_department, color: Colors.red),
+                    title: Text(station['station_name'] ?? 'Unknown Station'),
+                    subtitle: Text("Tap to call ${station['phone'] ?? 'N/A'}"),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.call),
+                      onPressed: () {
+                        if (station['phone'] != null) callNumber(station['phone']);
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Call 999 button
+            ElevatedButton.icon(
+              icon: const Icon(Icons.call, color: Colors.white),
+              label: const Text("Call 999", style: TextStyle(fontSize: 18)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              ),
+              onPressed: () => callNumber("999"),
+            ),
+          ],
+        ),
       ),
     );
   }

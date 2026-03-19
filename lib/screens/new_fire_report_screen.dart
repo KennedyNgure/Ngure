@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NewFireReportScreen extends StatefulWidget {
-  final String? stationName;
+  final String stationName;
 
-  const NewFireReportScreen({super.key, this.stationName});
+  const NewFireReportScreen({super.key, required this.stationName});
 
   @override
   State<NewFireReportScreen> createState() => _NewFireReportScreenState();
@@ -12,53 +12,101 @@ class NewFireReportScreen extends StatefulWidget {
 
 class _NewFireReportScreenState extends State<NewFireReportScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _latitudeController = TextEditingController();
-  final TextEditingController _longitudeController = TextEditingController();
 
   String? fireType;
   String? fireSize;
   String? evacuationStatus;
 
   final List<String> fireTypes = [
-    "Electrical Fire",
-    "Forest Fire",
-    "Building Fire",
-    "Vehicle Fire",
-    "Gas Fire",
-    "Other"
+    'Station Fire',
   ];
 
   final List<String> fireSizes = [
     "Small",
     "Medium",
     "Large",
-    "Out of Control"
   ];
 
   final List<String> evacuationStatuses = [
-    "Not Required",
-    "In Progress",
-    "Completed",
-    "Unknown"
+    "Evacuated",
+    "Evacuation in progress",
+    "People still inside",
   ];
 
+  /// 🔥 SUBMIT REPORT
   void _submitReport() async {
     if (_formKey.currentState!.validate()) {
-      await FirebaseFirestore.instance.collection("reports").add({
-        "latitude": double.tryParse(_latitudeController.text),
-        "longitude": double.tryParse(_longitudeController.text),
-        "fire_type": fireType,
-        "fire_size": fireSize,
-        "evacuation_status": evacuationStatus,
-        "nearest_station": widget.stationName ?? "",
-        "timestamp": DateTime.now(),
-      });
+      try {
+        /// 🔍 QUERY STATION BY NAME
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection("stations")
+            .where("station_name", isEqualTo: widget.stationName)
+            .limit(1)
+            .get();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Fire report submitted successfully")),
-      );
+        if (querySnapshot.docs.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Station not found in database"),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
 
-      Navigator.pop(context);
+        /// 📍 GET STATION DATA
+        final stationData = querySnapshot.docs.first.data();
+
+        final String ward = stationData["ward"] ?? "";
+        final String subcounty = stationData["subcounty"] ?? "";
+        final String county = stationData["county"] ?? "";
+
+        /// 🔥 SAVE REPORT WITH LOCATION
+        await FirebaseFirestore.instance.collection("reports").add({
+
+          /// 📍 AUTO LOCATION FROM MATCHED STATION
+          "ward": ward,
+          "subcounty": subcounty,
+          "county": county,
+
+          /// 🚒 STATION INFO
+          "station_name": widget.stationName,
+          "locationType": "station",
+          "isStationOnFire": true,
+
+          /// 🔥 FIRE DETAILS
+          "fireType": fireType ?? "Station Fire",
+          "fireSize": fireSize,
+          "evacuationStatus": evacuationStatus,
+
+          /// 🆕 STATUS FIELD
+          "status": "pending",
+
+          /// ⏱ TIME
+          "timestamp": DateTime.now(),
+
+          /// OPTIONAL
+          "latitude": null,
+          "longitude": null,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("🚨 Fire reported with station location"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pop(context);
+
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -66,33 +114,35 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("New Fire Report"),
+        title: const Text("🚨 Station Emergency"),
         backgroundColor: Colors.red,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
+
         child: Form(
           key: _formKey,
+
           child: ListView(
             children: [
-              TextFormField(
-                controller: _latitudeController,
-                decoration: const InputDecoration(labelText: "Latitude"),
-                keyboardType: TextInputType.number,
-                validator: (value) =>
-                value!.isEmpty ? "Enter latitude" : null,
+
+              /// 🚒 STATION DISPLAY
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  border: Border.all(color: Colors.red),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  "Station: ${widget.stationName}\n⚠️ Reporting this station is on fire",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
 
-              TextFormField(
-                controller: _longitudeController,
-                decoration: const InputDecoration(labelText: "Longitude"),
-                keyboardType: TextInputType.number,
-                validator: (value) =>
-                value!.isEmpty ? "Enter longitude" : null,
-              ),
+              const SizedBox(height: 20),
 
-              const SizedBox(height: 15),
-
+              /// 🔥 FIRE TYPE
               DropdownButtonFormField<String>(
                 value: fireType,
                 hint: const Text("Select Fire Type"),
@@ -113,6 +163,7 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
 
               const SizedBox(height: 15),
 
+              /// 🔥 FIRE SIZE
               DropdownButtonFormField<String>(
                 value: fireSize,
                 hint: const Text("Select Fire Size"),
@@ -133,6 +184,7 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
 
               const SizedBox(height: 15),
 
+              /// 🚨 EVACUATION STATUS
               DropdownButtonFormField<String>(
                 value: evacuationStatus,
                 hint: const Text("Evacuation Status"),
@@ -153,12 +205,17 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
 
               const SizedBox(height: 25),
 
+              /// 🚀 SUBMIT BUTTON
               ElevatedButton(
                 onPressed: _submitReport,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
-                child: const Text("Submit Report"),
+                child: const Text(
+                  "🚨 REPORT STATION FIRE",
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
             ],
           ),

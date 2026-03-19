@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:math';
+import 'feed_fire_call_screen.dart';
 import 'report_fire_screen.dart';
 import 'station_profile.dart';
-import 'package:fire_alert_app/screens/new_fire_report_screen.dart';
+import 'new_fire_report_screen.dart';
 import 'interstation_communication_screen.dart';
 
 class StationDashboard extends StatefulWidget {
@@ -16,51 +16,35 @@ class StationDashboard extends StatefulWidget {
 }
 
 class _StationDashboardState extends State<StationDashboard> {
-  double? stationLatitude;
-  double? stationLongitude;
+  String? stationCounty;
+  final TextEditingController searchController = TextEditingController();
+  String? searchQuery;
+
+  /// 🔥 Track expanded card
+  String? expandedReportId;
 
   @override
   void initState() {
     super.initState();
+    loadStationCounty();
   }
 
-  /// Load station coordinates from Firestore
-  Future<void> loadStationLocation() async {
-    var doc = await FirebaseFirestore.instance
+  /// Load station's county from Firestore
+  Future<void> loadStationCounty() async {
+    var query = await FirebaseFirestore.instance
         .collection("stations")
-        .doc(widget.stationName)
+        .where("station_name", isEqualTo: widget.stationName)
         .get();
 
-    if (doc.exists) {
-      var data = doc.data()!;
-
+    if (query.docs.isNotEmpty) {
+      var data = query.docs.first.data();
       setState(() {
-        stationLatitude = (data["latitude"] as num).toDouble();
-        stationLongitude = (data["longitude"] as num).toDouble();
+        stationCounty = (data["county"] ?? "").toString().trim();
       });
     }
   }
 
-  /// Haversine distance calculation
-  double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    const double R = 6371;
-
-    double dLat = (lat2 - lat1) * pi / 180;
-    double dLon = (lon2 - lon1) * pi / 180;
-
-    double a =
-        sin(dLat / 2) * sin(dLat / 2) +
-            cos(lat1 * pi / 180) *
-                cos(lat2 * pi / 180) *
-                sin(dLon / 2) *
-                sin(dLon / 2);
-
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-    return R * c;
-  }
-
-  /// Update fire status
+  /// Mark report as handled
   Future<void> markAsHandled(String reportId) async {
     await FirebaseFirestore.instance
         .collection("reports")
@@ -68,11 +52,8 @@ class _StationDashboardState extends State<StationDashboard> {
         .update({"status": "handled"});
 
     if (!mounted) return;
-
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Fire marked as handled"),
-      ),
+      const SnackBar(content: Text("Fire marked as handled")),
     );
   }
 
@@ -94,110 +75,91 @@ class _StationDashboardState extends State<StationDashboard> {
               );
             },
             icon: const Icon(Icons.person, color: Colors.white),
-            label: const Text("Profile",
-                style: TextStyle(color: Colors.white)),
+            label: const Text("Profile", style: TextStyle(color: Colors.white)),
           ),
           TextButton.icon(
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const ReportFireScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => ReportFireScreen()),
               );
             },
             icon: const Icon(Icons.logout, color: Colors.white),
-            label:
-            const Text("Logout", style: TextStyle(color: Colors.white)),
+            label: const Text("Logout", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
-            /// Station Card
+            /// 🚒 Station Info
             Card(
               elevation: 4,
               child: ListTile(
-                leading: const Icon(
-                  Icons.local_fire_department,
-                  color: Colors.red,
-                  size: 40,
-                ),
-                title: Text(
-                  widget.stationName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: const Text("Monitoring fire alerts"),
+                leading: const Icon(Icons.local_fire_department,
+                    color: Colors.red, size: 40),
+                title: Text(widget.stationName,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(stationCounty ?? ""),
               ),
             ),
-
             const SizedBox(height: 20),
 
-            /// Quick actions
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Quick Actions",
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
+            /// ⚡ Quick Actions
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-
                 ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                   icon: const Icon(Icons.warning),
                   label: const Text("New Alert"),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => NewFireReportScreen(
-                          stationName: widget.stationName,
-                        ),
+                        builder: (context) =>
+                            NewFireReportScreen(stationName: widget.stationName),
                       ),
                     );
                   },
                 ),
-
                 const SizedBox(width: 20),
-
                 ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                  ),
+                  style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                  icon: const Icon(Icons.phone),
+                  label: const Text("Feed Fire Call"),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            FeedFireCallScreen(stationName: widget.stationName),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
                   icon: const Icon(Icons.chat),
                   label: const Text("Inter-station Communication"),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            InterstationCommunicationScreen(
-                              stationName: widget.stationName,
-                            ),
+                        builder: (context) => InterstationCommunicationScreen(
+                            stationName: widget.stationName),
                       ),
                     );
                   },
                 ),
               ],
             ),
-
             const SizedBox(height: 25),
 
-            /// Fire reports title
+            /// 🔥 TITLE
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -208,167 +170,183 @@ class _StationDashboardState extends State<StationDashboard> {
                 ),
               ),
             ),
-
             const SizedBox(height: 10),
 
-            /// Fire reports list
+            /// 🔍 SEARCH
+            TextField(
+              controller: searchController,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                hintText: "Search by Ward, Subcounty, or County",
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value.toLowerCase().trim();
+                });
+              },
+            ),
+            const SizedBox(height: 10),
+
+            /// 📋 REPORT LIST
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection("reports")
                     .where("status", isEqualTo: "pending")
-                    .orderBy("timestamp", descending: true)
-                    .limit(20)
                     .snapshots(),
-
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text("Error: ${snapshot.error}"),
+                    );
+                  }
 
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
-                    return const Center(
-                        child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator());
                   }
 
                   if (!snapshot.hasData ||
                       snapshot.data!.docs.isEmpty) {
                     return const Center(
-                      child: Text("No pending fire reports"),
-                    );
+                        child: Text("No pending fire reports available"));
                   }
 
-                  var reports = snapshot.data!.docs;
+                  final reports = snapshot.data!.docs
+                      .map((doc) => {
+                    "id": doc.id,
+                    ...doc.data() as Map<String, dynamic>
+                  })
+                      .where((report) {
+                    if (searchQuery == null ||
+                        searchQuery!.isEmpty) return true;
+
+                    String ward =
+                    (report["ward"] ?? "").toLowerCase();
+                    String subcounty =
+                    (report["subcounty"] ?? "").toLowerCase();
+                    String county =
+                    (report["county"] ?? "").toLowerCase();
+
+                    return ward.contains(searchQuery!) ||
+                        subcounty.contains(searchQuery!) ||
+                        county.contains(searchQuery!);
+                  }).toList();
+
+                  if (reports.isEmpty) {
+                    return const Center(
+                        child: Text("No fire reports match your search"));
+                  }
 
                   return ListView.builder(
                     itemCount: reports.length,
                     itemBuilder: (context, index) {
-
-                      var doc = reports[index];
-                      var report =
-                      doc.data() as Map<String, dynamic>;
-
-                      /// Safe latitude
-                      double reportLat =
-                      (report["latitude"] is num)
-                          ? (report["latitude"] as num)
-                          .toDouble()
-                          : 0.0;
-
-                      /// Safe longitude
-                      double reportLon =
-                      (report["longitude"] is num)
-                          ? (report["longitude"] as num)
-                          .toDouble()
-                          : 0.0;
-
-                      double distance = 0.0;
-
-                      if (stationLatitude != null &&
-                          stationLongitude != null) {
-                        distance = calculateDistance(
-                          stationLatitude!,
-                          stationLongitude!,
-                          reportLat,
-                          reportLon,
-                        );
-                      }
-
-                      /// Only show within 20km
-                      if (stationLatitude != null &&
-                          stationLongitude != null &&
-                          distance > 20) {
-                        return const SizedBox.shrink();
-                      }
-
-                      Timestamp? timestamp =
-                      report["timestamp"] as Timestamp?;
+                      final report = reports[index];
 
                       return Card(
-                        elevation: 4,
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 6),
-                        child: Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                            children: [
+                        elevation: 3,
+                        margin:
+                        const EdgeInsets.symmetric(vertical: 6),
+                        child: Column(
+                          children: [
+                            ListTile(
+                              title: Text(
+                                  report["fireType"] ??
+                                      "Unknown Fire"),
+                              subtitle: Text(
+                                  "Ward: ${report["ward"] ?? ""}, Subcounty: ${report["subcounty"] ?? ""}, County: ${report["county"] ?? ""}"),
+                            ),
 
-                              Row(
-                                children: const [
-                                  Icon(
-                                    Icons.local_fire_department,
-                                    color: Colors.red,
+                            /// BUTTONS
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              child: Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.end,
+                                children: [
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                        Colors.green),
+                                    child: const Text("Handled"),
+                                    onPressed: () =>
+                                        markAsHandled(
+                                            report["id"]),
                                   ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    "Active Fire Alert",
-                                    style: TextStyle(
-                                      fontWeight:
-                                      FontWeight.bold,
-                                      fontSize: 16,
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                        Colors.blue),
+                                    child: Text(
+                                      expandedReportId ==
+                                          report["id"]
+                                          ? "Hide"
+                                          : "View",
                                     ),
+                                    onPressed: () {
+                                      setState(() {
+                                        if (expandedReportId ==
+                                            report["id"]) {
+                                          expandedReportId =
+                                          null;
+                                        } else {
+                                          expandedReportId =
+                                          report["id"];
+                                        }
+                                      });
+                                    },
                                   ),
                                 ],
                               ),
+                            ),
 
-                              const Divider(),
+                            /// EXPANDED DETAILS
+                            if (expandedReportId ==
+                                report["id"])
+                              Container(
+                                width: double.infinity,
+                                padding:
+                                const EdgeInsets.all(12),
+                                color: Colors.grey.shade100,
+                                child: Column(
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        "🔥 Fire Type: ${report["fireType"] ?? ""}"),
+                                    Text(
+                                        "📏 Fire Size: ${report["fireSize"] ?? ""}"),
+                                    Text(
+                                        "🚨 Evacuation: ${report["evacuationStatus"] ?? ""}"),
+                                    Text(
+                                        "📍 Ward: ${report["ward"] ?? ""}"),
+                                    Text(
+                                        "🏙 Subcounty: ${report["subcounty"] ?? ""}"),
+                                    Text(
+                                        "🌍 County: ${report["county"] ?? ""}"),
+                                    const SizedBox(height: 5),
 
-                              Text(
-                                  "Reporter: ${report["name"] ?? "Unknown"}"),
-                              Text(
-                                  "Phone: ${report["phone"] ?? "N/A"}"),
-                              Text(
-                                  "Description: ${report["description"] ?? ""}"),
+                                    if (report["reporterName"] !=
+                                        null)
+                                      Text(
+                                          "👤 Reporter: ${report["reporterName"]}"),
 
-                              const SizedBox(height: 6),
+                                    if (report["reporterPhone"] !=
+                                        null)
+                                      Text(
+                                          "📞 Phone: ${report["reporterPhone"]}"),
 
-                              Text(
-                                  "Fire Type: ${report["fireType"] ?? "Unknown"}"),
-                              Text(
-                                  "Fire Size: ${report["fireSize"] ?? "Unknown"}"),
-
-                              const SizedBox(height: 6),
-
-                              Text(
-                                  "People Trapped/Injured: ${report["peopleTrapped"] ?? "0"}"),
-                              Text(
-                                  "Evacuation Status: ${report["evacuationStatus"] ?? "Unknown"}"),
-
-                              const SizedBox(height: 6),
-
-                              Text("Location: $reportLat, $reportLon"),
-                              Text(
-                                  "Distance: ${distance.toStringAsFixed(2)} km"),
-
-                              if (timestamp != null)
-                                Text(
-                                  "Reported: ${timestamp.toDate()}",
-                                  style: const TextStyle(
-                                      fontSize: 12),
-                                ),
-
-                              const SizedBox(height: 10),
-
-                              Align(
-                                alignment:
-                                Alignment.centerRight,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton
-                                      .styleFrom(
-                                    backgroundColor:
-                                    Colors.green,
-                                  ),
-                                  icon:
-                                  const Icon(Icons.check),
-                                  label: const Text(
-                                      "Mark as Handled"),
-                                  onPressed: () {
-                                    markAsHandled(doc.id);
-                                  },
+                                    if (report["peopleTrapped"] !=
+                                        null)
+                                      Text(
+                                          "🧍 People Trapped: ${report["peopleTrapped"]}"),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
                       );
                     },

@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 
 class StationProfile extends StatefulWidget {
 
   final String stationName;
 
-  StationProfile({super.key, required this.stationName});
+  const StationProfile({super.key, required this.stationName});
 
   @override
   State<StationProfile> createState() => _StationProfileState();
@@ -20,8 +21,11 @@ class _StationProfileState extends State<StationProfile> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController unitsController = TextEditingController();
-  final TextEditingController latitudeController = TextEditingController();
-  final TextEditingController longitudeController = TextEditingController();
+
+  final TextEditingController wardController = TextEditingController();
+  final TextEditingController subcountyController = TextEditingController();
+  final TextEditingController countyController = TextEditingController();
+
   final TextEditingController fcmController = TextEditingController();
 
   bool passwordVisible = false;
@@ -31,6 +35,32 @@ class _StationProfileState extends State<StationProfile> {
     var bytes = utf8.encode(password);
     var digest = sha256.convert(bytes);
     return digest.toString();
+  }
+
+  /// 🔥 FORWARD GEOCODING (ward → lat/lon)
+  Future<Map<String, double>> getCoordinatesFromAddress(
+      String ward, String subcounty, String county) async {
+
+    final query = "$ward, $subcounty, $county, Kenya";
+
+    final url = Uri.parse(
+      "https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=1",
+    );
+
+    final response = await http.get(url, headers: {
+      'User-Agent': 'fire_app',
+    });
+
+    final data = json.decode(response.body);
+
+    if (data.isEmpty) {
+      throw Exception("Location not found. Check ward/subcounty/county.");
+    }
+
+    return {
+      "lat": double.parse(data[0]["lat"]),
+      "lon": double.parse(data[0]["lon"]),
+    };
   }
 
   /// LOAD STATION DATA
@@ -44,13 +74,10 @@ class _StationProfileState extends State<StationProfile> {
           .get();
 
       if (query.docs.isEmpty) {
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Station not found")),
         );
-
         return;
-
       }
 
       var data = query.docs.first.data();
@@ -59,18 +86,18 @@ class _StationProfileState extends State<StationProfile> {
       emailController.text = data["email"] ?? "";
       phoneController.text = data["phone"] ?? "";
       unitsController.text = data["available_units"].toString();
-      latitudeController.text = data["latitude"].toString();
-      longitudeController.text = data["longitude"].toString();
       fcmController.text = data["fcm_token"] ?? "";
+
+      wardController.text = data["ward"] ?? "";
+      subcountyController.text = data["subcounty"] ?? "";
+      countyController.text = data["county"] ?? "";
 
     } catch (e) {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error loading station: $e")),
       );
-
     }
-
   }
 
   /// UPDATE STATION
@@ -78,15 +105,27 @@ class _StationProfileState extends State<StationProfile> {
 
     try {
 
+      // 🔥 Convert ward → coordinates
+      final coords = await getCoordinatesFromAddress(
+        wardController.text.trim(),
+        subcountyController.text.trim(),
+        countyController.text.trim(),
+      );
+
       Map<String, dynamic> updateData = {
 
         "email": emailController.text.trim(),
         "phone": phoneController.text.trim(),
         "available_units": int.tryParse(unitsController.text) ?? 0,
-        "latitude": double.tryParse(latitudeController.text) ?? 0,
-        "longitude": double.tryParse(longitudeController.text) ?? 0,
-        "fcm_token": fcmController.text.trim(),
 
+        "ward": wardController.text.trim(),
+        "subcounty": subcountyController.text.trim(),
+        "county": countyController.text.trim(),
+
+        "latitude": coords["lat"],
+        "longitude": coords["lon"],
+
+        "fcm_token": fcmController.text.trim(),
       };
 
       if (passwordController.text.isNotEmpty) {
@@ -94,25 +133,20 @@ class _StationProfileState extends State<StationProfile> {
             hashPassword(passwordController.text.trim());
       }
 
-      /// FIND DOCUMENT BY station_name
       var query = await FirebaseFirestore.instance
           .collection("stations")
           .where("station_name", isEqualTo: widget.stationName)
           .get();
 
       if (query.docs.isEmpty) {
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Station not found")),
         );
-
         return;
-
       }
 
       String docId = query.docs.first.id;
 
-      /// UPDATE DOCUMENT
       await FirebaseFirestore.instance
           .collection("stations")
           .doc(docId)
@@ -120,7 +154,7 @@ class _StationProfileState extends State<StationProfile> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("✅ Station details updated successfully"),
+          content: Text("✅ Station updated with location"),
           backgroundColor: Colors.green,
         ),
       );
@@ -128,11 +162,12 @@ class _StationProfileState extends State<StationProfile> {
     } catch (e) {
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
-
     }
-
   }
 
   @override
@@ -159,7 +194,6 @@ class _StationProfileState extends State<StationProfile> {
 
           children: [
 
-            /// STATION NAME (READ ONLY)
             TextField(
               controller: stationNameController,
               readOnly: true,
@@ -194,27 +228,18 @@ class _StationProfileState extends State<StationProfile> {
             TextField(
               controller: passwordController,
               obscureText: !passwordVisible,
-
               decoration: InputDecoration(
                 labelText: "New Password (optional)",
                 border: const OutlineInputBorder(),
-
                 suffixIcon: IconButton(
-
-                  icon: Icon(
-                    passwordVisible
-                        ? Icons.visibility
-                        : Icons.visibility_off,
-                  ),
-
+                  icon: Icon(passwordVisible
+                      ? Icons.visibility
+                      : Icons.visibility_off),
                   onPressed: () {
-
                     setState(() {
                       passwordVisible = !passwordVisible;
                     });
-
                   },
-
                 ),
               ),
             ),
@@ -232,11 +257,11 @@ class _StationProfileState extends State<StationProfile> {
 
             const SizedBox(height: 15),
 
+            /// 🔥 NEW FIELDS
             TextField(
-              controller: latitudeController,
-              keyboardType: TextInputType.number,
+              controller: wardController,
               decoration: const InputDecoration(
-                labelText: "Latitude",
+                labelText: "Ward",
                 border: OutlineInputBorder(),
               ),
             ),
@@ -244,10 +269,19 @@ class _StationProfileState extends State<StationProfile> {
             const SizedBox(height: 15),
 
             TextField(
-              controller: longitudeController,
-              keyboardType: TextInputType.number,
+              controller: subcountyController,
               decoration: const InputDecoration(
-                labelText: "Longitude",
+                labelText: "Subcounty",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            TextField(
+              controller: countyController,
+              decoration: const InputDecoration(
+                labelText: "County",
                 border: OutlineInputBorder(),
               ),
             ),
@@ -265,21 +299,14 @@ class _StationProfileState extends State<StationProfile> {
             const SizedBox(height: 30),
 
             ElevatedButton(
-
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 padding: const EdgeInsets.symmetric(
                     horizontal: 40, vertical: 15),
               ),
-
               onPressed: updateStation,
-
-              child: const Text(
-                "UPDATE DETAILS",
-                style: TextStyle(fontSize: 16),
-              ),
+              child: const Text("UPDATE DETAILS"),
             ),
-
           ],
         ),
       ),
