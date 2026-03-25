@@ -39,7 +39,7 @@ class _FeedFireCallScreenState extends State<FeedFireCallScreen> {
 
   final List<String> evacuationOptions = [
     "Evacuated",
-  "Evacuation in progress",
+    "Evacuation in progress",
     "People still inside",
   ];
 
@@ -56,7 +56,7 @@ class _FeedFireCallScreenState extends State<FeedFireCallScreen> {
       "fireSize": fireSize ?? 'Unknown',
       "evacuationStatus": evacuationStatus ?? 'Unknown',
       "ward": ward,
-      "subCounty": subCounty,
+      "subcounty": subCounty,
       "county": county,
       "handledBy": widget.stationName,
       "status": "handled",
@@ -72,6 +72,7 @@ class _FeedFireCallScreenState extends State<FeedFireCallScreen> {
     Navigator.pop(context);
   }
 
+  /// 🚒 ASSIGN TO STATION (INTER-STATION CHAT)
   /// 🚒 ASSIGN TO STATION (INTER-STATION CHAT)
   Future<void> assignToStation() async {
     if (!_formKey.currentState!.validate()) return;
@@ -103,7 +104,6 @@ class _FeedFireCallScreenState extends State<FeedFireCallScreen> {
                 List<String> stations = [currentStation, selectedStation];
                 stations.sort();
                 String chatId = "${stations[0]}_${stations[1]}";
-
                 /// 🔥 BUILD FIRE MESSAGE
                 String messageText = """
 🚒 FIRE ALERT DETAILS

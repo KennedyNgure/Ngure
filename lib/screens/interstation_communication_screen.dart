@@ -17,7 +17,9 @@ class _InterstationCommunicationScreenState
   String searchQuery = "";
 
   String getChatId(String a, String b) {
-    List stations = [a, b];
+    if (a.trim().isEmpty || b.trim().isEmpty) return "";
+
+    List<String> stations = [a.trim(), b.trim()];
     stations.sort();
     return stations.join("_");
   }
@@ -65,6 +67,8 @@ class _InterstationCommunicationScreenState
                     String chatId =
                     getChatId(widget.stationName, otherStation);
 
+                    if (chatId.isEmpty) return;
+
                     var chatRef = FirebaseFirestore.instance
                         .collection("interstation_chats")
                         .doc(chatId);
@@ -96,6 +100,18 @@ class _InterstationCommunicationScreenState
     );
   }
 
+  String? getOtherStation(String chatId) {
+    List<String> stations = chatId.split("_");
+
+    if (stations.length < 2) return null;
+    if (!stations.contains(widget.stationName)) return null;
+
+    return stations.firstWhere(
+          (s) => s != widget.stationName,
+      orElse: () => "",
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,7 +126,6 @@ class _InterstationCommunicationScreenState
       ),
       body: Column(
         children: [
-
           /// SEARCH BAR
           Padding(
             padding: const EdgeInsets.all(8),
@@ -138,7 +153,6 @@ class _InterstationCommunicationScreenState
                   .orderBy("lastTimestamp", descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -146,18 +160,15 @@ class _InterstationCommunicationScreenState
                 var chats = snapshot.data!.docs;
 
                 List relevantChats = chats.where((doc) {
+                  String? otherStation = getOtherStation(doc.id);
 
-                  if (!doc.id.contains(widget.stationName)) return false;
-
-                  List stations = doc.id.split("_");
-
-                  String otherStation =
-                  stations.firstWhere((s) => s != widget.stationName);
+                  if (otherStation == null || otherStation.isEmpty) {
+                    return false;
+                  }
 
                   return otherStation
                       .toLowerCase()
                       .contains(searchQuery);
-
                 }).toList();
 
                 if (relevantChats.isEmpty) {
@@ -167,17 +178,17 @@ class _InterstationCommunicationScreenState
                 return ListView.builder(
                   itemCount: relevantChats.length,
                   itemBuilder: (context, index) {
-
                     var chatDoc = relevantChats[index];
                     var data =
                         chatDoc.data() as Map<String, dynamic>? ?? {};
 
                     String chatId = chatDoc.id;
 
-                    List stations = chatId.split("_");
+                    String? otherStation = getOtherStation(chatId);
 
-                    String otherStation =
-                    stations.firstWhere((s) => s != widget.stationName);
+                    if (otherStation == null || otherStation.isEmpty) {
+                      return const SizedBox();
+                    }
 
                     int unreadCount =
                         data["unread_${widget.stationName}"] ?? 0;
@@ -188,19 +199,15 @@ class _InterstationCommunicationScreenState
                         child: Icon(Icons.local_fire_department,
                             color: Colors.white),
                       ),
-
                       title: Text(otherStation),
-
                       subtitle: Text(
                         data["lastMessage"] ?? "No messages yet",
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-
                           if (unreadCount > 0)
                             CircleAvatar(
                               radius: 12,
@@ -211,11 +218,9 @@ class _InterstationCommunicationScreenState
                                     color: Colors.white, fontSize: 12),
                               ),
                             ),
-
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
                             onPressed: () {
-
                               showDialog(
                                 context: context,
                                 builder: (_) => AlertDialog(
@@ -223,20 +228,15 @@ class _InterstationCommunicationScreenState
                                   content: const Text(
                                       "Are you sure you want to delete this conversation?"),
                                   actions: [
-
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(context),
                                       child: const Text("Cancel"),
                                     ),
-
                                     TextButton(
                                       onPressed: () async {
-
                                         Navigator.pop(context);
-
                                         await deleteChat(chatId);
-
                                       },
                                       child: const Text("Delete"),
                                     ),
@@ -247,7 +247,6 @@ class _InterstationCommunicationScreenState
                           ),
                         ],
                       ),
-
                       onTap: () {
                         Navigator.push(
                           context,
@@ -289,7 +288,7 @@ class _StationChatPageState extends State<StationChatPage> {
   final TextEditingController messageController = TextEditingController();
 
   String getChatId() {
-    List stations = [widget.stationName, widget.otherStation];
+    List<String> stations = [widget.stationName, widget.otherStation];
     stations.sort();
     return stations.join("_");
   }
@@ -312,7 +311,6 @@ class _StationChatPageState extends State<StationChatPage> {
   }
 
   void sendMessage() async {
-
     if (messageController.text.trim().isEmpty) return;
 
     String chatId = getChatId();
@@ -339,7 +337,6 @@ class _StationChatPageState extends State<StationChatPage> {
 
   @override
   Widget build(BuildContext context) {
-
     String chatId = getChatId();
 
     return Scaffold(
@@ -347,10 +344,8 @@ class _StationChatPageState extends State<StationChatPage> {
         title: Text(widget.otherStation),
         backgroundColor: Colors.blue,
       ),
-
       body: Column(
         children: [
-
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -360,7 +355,6 @@ class _StationChatPageState extends State<StationChatPage> {
                   .orderBy("timestamp", descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -371,7 +365,6 @@ class _StationChatPageState extends State<StationChatPage> {
                   reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-
                     var data =
                     messages[index].data() as Map<String, dynamic>;
 
@@ -401,12 +394,10 @@ class _StationChatPageState extends State<StationChatPage> {
               },
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(8),
             child: Row(
               children: [
-
                 Expanded(
                   child: TextField(
                     controller: messageController,
@@ -416,9 +407,7 @@ class _StationChatPageState extends State<StationChatPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 8),
-
                 ElevatedButton(
                   onPressed: sendMessage,
                   child: const Icon(Icons.send),

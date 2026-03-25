@@ -36,7 +36,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
         .format(report["timestamp"].toDate())
         : "";
 
-    String station = report["station_name"] ?? "";
+    String station = report["handledBy"] ?? "";
     String reporter = report["reporterName"] ?? "";
     String status = report["status"] ?? "";
 
@@ -93,7 +93,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
               Text("Reporter Name: ${report["reporterName"] ?? "Unknown"}"),
               Text("Reporter Phone: ${report["reporterPhone"] ?? "Unknown"}"),
               Text("Status: ${report["status"] ?? "Unknown"}"),
-              Text("Station: ${report["station_name"] ?? "Unknown"}"),
+              Text("Station: ${report["handledBy"] ?? "Unknown"}"),
 
               /// 🆕 LOCATION DETAILS
               const SizedBox(height: 10),
@@ -202,7 +202,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                         .format(report["timestamp"].toDate())
                         : "No timestamp";
 
-                    String station = report["station_name"] ?? "Unknown";
+                    String station = report["handledBy"] ?? "Unknown";
                     String reporter = report["reporterName"] ?? "Unknown";
                     String status = report["status"] ?? "Unknown";
 
