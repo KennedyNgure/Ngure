@@ -58,7 +58,7 @@ class _FeedFireCallScreenState extends State<FeedFireCallScreen> {
       "ward": ward,
       "subCounty": subCounty,
       "county": county,
-      "stationName": widget.stationName,
+      "handledBy": widget.stationName,
       "status": "handled",
       "timestamp": FieldValue.serverTimestamp(),
     });
@@ -271,7 +271,7 @@ Please respond immediately.
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple),
+                          backgroundColor: Colors.grey[200]),
                       onPressed: assignToStation,
                       child: const Text("Assign Station"),
                     ),

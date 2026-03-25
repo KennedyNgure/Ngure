@@ -60,6 +60,7 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
         final String ward = stationData["ward"] ?? "";
         final String subcounty = stationData["subcounty"] ?? "";
         final String county = stationData["county"] ?? "";
+        final String phoneNumber = stationData["phone"] ?? ""; // <-- fetch phone
 
         /// 🔥 SAVE REPORT WITH LOCATION
         await FirebaseFirestore.instance.collection("reports").add({
@@ -70,7 +71,8 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
           "county": county,
 
           /// 🚒 STATION INFO
-          "station_name": widget.stationName,
+          "reporterName": widget.stationName,
+          "reporterPhone": phoneNumber, // <-- new field
           "locationType": "station",
           "isStationOnFire": true,
 

@@ -89,13 +89,36 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
   // GET LOCATION
   Future<Position> getLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) throw Exception("Location services are disabled.");
+    if (!serviceEnabled) {
+      // Show a notification to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "📍 Location must be ON to capture your location as the fire reporter. "
+                "This helps in sending units to your location quickly.",
+          ),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 5),
+        ),
+      );
+      throw Exception("Location services are disabled.");
+    }
 
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
     if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "❌ Location permission is permanently denied. "
+                "Enable it in settings to report fire accurately.",
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 5),
+        ),
+      );
       throw Exception("Location permission permanently denied.");
     }
 
@@ -302,7 +325,6 @@ class SafetyTipsScreen extends StatelessWidget {
     );
   }
 }
-
 // =====================================
 // EMERGENCY CONTACTS SCREEN
 // =====================================
@@ -323,7 +345,6 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   List<String> counties = [];
   List<String> subcounties = [];
   List<String> wards = [];
-
   List<Map<String, dynamic>> stations = [];
 
   @override
@@ -381,7 +402,6 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         .where('subcounty', isEqualTo: selectedSubcounty)
         .where('ward', isEqualTo: selectedWard)
         .get();
-
     setState(() {
       stations = querySnapshot.docs.map((doc) => doc.data()).toList();
     });
@@ -402,7 +422,10 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Emergency Contacts"), backgroundColor: Colors.blue),
+      appBar: AppBar(
+        title: const Text("Emergency Contacts"),
+        backgroundColor: Colors.blue,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -465,17 +488,6 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                   );
                 },
               ),
-            ),
-            const SizedBox(height: 10),
-            // Call 999 button
-            ElevatedButton.icon(
-              icon: const Icon(Icons.call, color: Colors.white),
-              label: const Text("Call 999", style: TextStyle(fontSize: 18)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-              ),
-              onPressed: () => callNumber("999"),
             ),
           ],
         ),

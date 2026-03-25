@@ -49,7 +49,10 @@ class _StationDashboardState extends State<StationDashboard> {
     await FirebaseFirestore.instance
         .collection("reports")
         .doc(reportId)
-        .update({"status": "handled"});
+        .update({
+      "status": "handled",
+      "handledBy": widget.stationName,
+    });
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

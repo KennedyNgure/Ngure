@@ -236,7 +236,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               DateTime time = data["timestamp"].toDate();
               if (!time.isAfter(weekStart)) continue;
 
-              String station = data["station_name"] ?? "Unknown";
+              String station = data["handledBy"] ?? "Unknown";
 
               stationCounts[station] =
                   (stationCounts[station] ?? 0) + 1;
