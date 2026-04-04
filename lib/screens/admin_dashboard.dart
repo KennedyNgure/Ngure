@@ -1,8 +1,10 @@
+// lib/screens/admin_dashboard.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'report_fire_screen.dart';
 import 'registered_stations_screen.dart';
 import 'fire_reports_screen.dart';
+import 'login_screen.dart'; // Make sure you have this
 
 class AdminDashboard extends StatefulWidget {
   final bool isAdmin;
@@ -84,8 +86,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                        const RegisteredStationsScreen(),
+                        builder: (context) => const RegisteredStationsScreen(),
                       ),
                     );
                   },
@@ -238,8 +239,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
               String station = data["handledBy"] ?? "Unknown";
 
-              stationCounts[station] =
-                  (stationCounts[station] ?? 0) + 1;
+              stationCounts[station] = (stationCounts[station] ?? 0) + 1;
             }
 
             var stations = stationCounts.entries.where((entry) {
@@ -257,14 +257,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
               children: stations.map((entry) {
                 return Card(
                   child: ListTile(
-                    leading: const Icon(Icons.local_fire_department,
-                        color: Colors.red),
+                    leading:
+                    const Icon(Icons.local_fire_department, color: Colors.red),
                     title: Text(entry.key),
                     trailing: Text(
                       "${entry.value} handled",
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green),
+                          fontWeight: FontWeight.bold, color: Colors.green),
                     ),
                   ),
                 );
@@ -273,6 +272,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
           },
         ),
       ],
+    );
+  }
+
+  void logout() {
+    // Navigate to LoginScreen and remove all previous routes
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
     );
   }
 
@@ -285,9 +293,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             "Access Denied\nAdmin Only",
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: 22,
-                color: Colors.red,
-                fontWeight: FontWeight.bold),
+                fontSize: 22, color: Colors.red, fontWeight: FontWeight.bold),
           ),
         ),
       );
@@ -297,6 +303,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
       appBar: AppBar(
         title: const Text("Admin Dashboard"),
         backgroundColor: Colors.red,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: "Logout",
+            onPressed: logout,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

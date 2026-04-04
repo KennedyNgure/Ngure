@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'registration_screen.dart';
-
+final FireReportService service = FireReportService();
 // =====================================
 // FIRE REPORT SERVICE
 // =====================================
@@ -14,10 +14,7 @@ class FireReportService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future submitReport({
-    required String fireType,
-    required String fireSize,
-    required int peopleTrapped,
-    required String evacuationStatus,
+    required String description,
     required double lat,
     required double lon,
     required String ward,
@@ -27,10 +24,7 @@ class FireReportService {
     String? phone,
   }) async {
     await _firestore.collection("reports").add({
-      "fireType": fireType,
-      "fireSize": fireSize,
-      "peopleTrapped": peopleTrapped,
-      "evacuationStatus": evacuationStatus,
+      "description": description,
       "latitude": lat,
       "longitude": lon,
       "ward": ward,
@@ -43,14 +37,12 @@ class FireReportService {
     });
   }
 }
-
 // =====================================
 // REPORT FIRE SCREEN
 // =====================================
 class ReportFireScreen extends StatefulWidget {
-  final String? stationName; // <- must be declared
+  final String? stationName;
 
-  // Remove const because we might pass non-const stationName
   ReportFireScreen({super.key, this.stationName});
 
   @override
@@ -60,42 +52,18 @@ class ReportFireScreen extends StatefulWidget {
 class _ReportFireScreenState extends State<ReportFireScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController peopleController = TextEditingController();
-
-  final FireReportService service = FireReportService();
-
-  String? selectedFireType;
-  String? selectedFireSize;
-  String? evacuationStatus;
+  final TextEditingController descriptionController = TextEditingController();
 
   bool isLoading = false;
-
-  final List<String> fireTypes = [
-    'Forest/Bush Fire',
-    'House/Building Fire',
-    'Vehicle Fire',
-    'Electrical Fire',
-    'Industrial'
-  ];
-
-  final List<String> fireSizes = ["Small", "Medium", "Large"];
-
-  final List<String> evacuationOptions = [
-    "Evacuated",
-    "Evacuation in progress",
-    "People still inside",
-  ];
 
   // GET LOCATION
   Future<Position> getLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Show a notification to the user
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            "📍 Location must be ON to capture your location as the fire reporter. "
-                "This helps in sending units to your location quickly.",
+            "📍 Location must be ON to capture your location as the fire reporter.",
           ),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 5),
@@ -112,8 +80,7 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            "❌ Location permission is permanently denied. "
-                "Enable it in settings to report fire accurately.",
+            "❌ Location permission is permanently denied. Enable it in settings.",
           ),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 5),
@@ -144,9 +111,16 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
 
   // REPORT FIRE
   Future<void> reportFire() async {
-    if (selectedFireType == null || selectedFireSize == null || evacuationStatus == null) {
+    if (nameController.text.trim().isEmpty || phoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fire details")),
+        const SnackBar(content: Text("Please enter Full Name and Phone Number")),
+      );
+      return;
+    }
+
+    if (descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter Fire Description")),
       );
       return;
     }
@@ -158,23 +132,20 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
       final locationDetails = await getLocationDetails(position.latitude, position.longitude);
 
       await service.submitReport(
-        fireType: selectedFireType!,
-        fireSize: selectedFireSize!,
-        peopleTrapped: int.tryParse(peopleController.text) ?? 0,
-        evacuationStatus: evacuationStatus!,
+        description: descriptionController.text.trim(),
         lat: position.latitude,
         lon: position.longitude,
         ward: locationDetails["ward"]!,
         subcounty: locationDetails["subcounty"]!,
         county: locationDetails["county"]!,
-        name: nameController.text.isEmpty ? null : nameController.text.trim(),
-        phone: phoneController.text.isEmpty ? null : phoneController.text.trim(),
+        name: nameController.text.trim(),
+        phone: phoneController.text.trim(),
       );
 
       setState(() => isLoading = false);
       nameController.clear();
       phoneController.clear();
-      peopleController.clear();
+      descriptionController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -211,13 +182,6 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
                   MaterialPageRoute(builder: (context) => const EmergencyContactsScreen()));
             },
           ),
-          TextButton(
-            child: const Text("Stations Registration", style: TextStyle(color: Colors.white)),
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => RegistrationScreen()));
-            },
-          ),
         ],
       ),
       body: Padding(
@@ -228,7 +192,7 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
-                  labelText: "Full Name (optional)",
+                  labelText: "Full Name",
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -237,48 +201,22 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  labelText: "Phone Number (optional)",
+                  labelText: "Phone Number",
                   border: OutlineInputBorder(),
                 ),
-              ),
-              const SizedBox(height: 15),
-              DropdownButtonFormField<String>(
-                value: selectedFireType,
-                decoration: const InputDecoration(
-                  labelText: "Type of Fire 🔥",
-                  border: OutlineInputBorder(),
-                ),
-                items: fireTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
-                onChanged: (value) => setState(() => selectedFireType = value),
-              ),
-              const SizedBox(height: 15),
-              DropdownButtonFormField<String>(
-                value: selectedFireSize,
-                decoration: const InputDecoration(
-                  labelText: "Size of Fire",
-                  border: OutlineInputBorder(),
-                ),
-                items: fireSizes.map((size) => DropdownMenuItem(value: size, child: Text(size))).toList(),
-                onChanged: (value) => setState(() => selectedFireSize = value),
               ),
               const SizedBox(height: 15),
               TextField(
-                controller: peopleController,
-                keyboardType: TextInputType.number,
+                controller: descriptionController,
+                maxLines: 5,
                 decoration: const InputDecoration(
-                  labelText: "Number of people trapped or injured",
+                  labelText: "Fire Description;",
+                  hintText: "Describe the fire:\n"
+                      "• What is burning? (e.g., house, car, forest, electrical wires)\n"
+                      "• How intense is it? (small, spreading, out of control)\n"
+                      "• Are people trapped or injured?",
                   border: OutlineInputBorder(),
                 ),
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: evacuationStatus,
-                decoration: const InputDecoration(
-                  labelText: "Evacuation Status",
-                  border: OutlineInputBorder(),
-                ),
-                items: evacuationOptions.map((status) => DropdownMenuItem(value: status, child: Text(status))).toList(),
-                onChanged: (value) => setState(() => evacuationStatus = value),
               ),
               const SizedBox(height: 30),
               isLoading

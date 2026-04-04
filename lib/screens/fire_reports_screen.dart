@@ -25,7 +25,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
     return now.subtract(Duration(days: now.weekday - 1));
   }
 
-  /// 🔍 UPDATED SEARCH FUNCTION
+  /// 🔍 SEARCH FUNCTION
   bool matchesSearch(Map<String, dynamic> report) {
     if (searchQuery.isEmpty) return true;
 
@@ -40,10 +40,13 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
     String reporter = report["reporterName"] ?? "";
     String status = report["status"] ?? "";
 
-    /// 🆕 NEW LOCATION FIELDS
+    /// LOCATION FIELDS
     String ward = report["ward"] ?? "";
     String subcounty = report["subcounty"] ?? "";
     String county = report["county"] ?? "";
+
+    /// 🔥 DESCRIPTION FIELD
+    String description = report["description"] ?? "";
 
     return timestamp.toLowerCase().contains(query) ||
         station.toLowerCase().contains(query) ||
@@ -52,6 +55,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
         ward.toLowerCase().contains(query) ||
         subcounty.toLowerCase().contains(query) ||
         county.toLowerCase().contains(query) ||
+        description.toLowerCase().contains(query) ||
         "$ward $subcounty".toLowerCase().contains(query) ||
         "$ward $subcounty $county".toLowerCase().contains(query);
   }
@@ -76,7 +80,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
     }
   }
 
-  /// 🔥 VIEW DETAILS UPDATED
+  /// 🔥 VIEW DETAILS UPDATED TO USE DESCRIPTION ONLY
   void viewReportDetails(Map<String, dynamic> report) {
     showDialog(
       context: context,
@@ -86,16 +90,13 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Fire Type: ${report["fireType"] ?? "Unknown"}"),
-              Text("Fire Size: ${report["fireSize"] ?? "Unknown"}"),
-              Text("People Trapped: ${report["peopleTrapped"] ?? 0}"),
-              Text("Evacuation Status: ${report["evacuationStatus"] ?? "Unknown"}"),
+              Text("Description: ${report["description"] ?? "No description"}"),
               Text("Reporter Name: ${report["reporterName"] ?? "Unknown"}"),
               Text("Reporter Phone: ${report["reporterPhone"] ?? "Unknown"}"),
               Text("Status: ${report["status"] ?? "Unknown"}"),
               Text("Station: ${report["handledBy"] ?? "Unknown"}"),
 
-              /// 🆕 LOCATION DETAILS
+              /// LOCATION DETAILS
               const SizedBox(height: 10),
               Text("Ward: ${report["ward"] ?? "Unknown"}"),
               Text("Subcounty: ${report["subcounty"] ?? "Unknown"}"),
@@ -135,15 +136,14 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
       ),
       body: Column(
         children: [
-
-          /// 🔍 UPDATED SEARCH BAR
+          /// 🔍 SEARCH BAR
           Padding(
             padding: const EdgeInsets.all(10),
             child: TextField(
               controller: searchController,
               decoration: const InputDecoration(
                 hintText:
-                "Search by station, reporter, status, ward, subcounty, county...",
+                "Search by station, reporter, status, ward, subcounty, county, description...",
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
@@ -155,7 +155,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
             ),
           ),
 
-          /// 📋 FIRE REPORTS LIST
+          /// FIRE REPORTS LIST
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -163,7 +163,6 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                   .orderBy("timestamp", descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -193,7 +192,6 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                 return ListView.builder(
                   itemCount: filteredReports.length,
                   itemBuilder: (context, index) {
-
                     var doc = filteredReports[index];
                     var report = doc.data() as Map<String, dynamic>;
 
@@ -205,11 +203,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                     String station = report["handledBy"] ?? "Unknown";
                     String reporter = report["reporterName"] ?? "Unknown";
                     String status = report["status"] ?? "Unknown";
-
-                    /// 🆕 LOCATION
-                    String ward = report["ward"] ?? "Unknown";
-                    String subcounty = report["subcounty"] ?? "Unknown";
-                    String county = report["county"] ?? "Unknown";
+                    String description = report["description"] ?? "No description";
 
                     return Card(
                       margin: const EdgeInsets.symmetric(
@@ -222,6 +216,7 @@ class _FireReportsScreenState extends State<FireReportsScreen> {
                             Text("Station: $station"),
                             Text("Timestamp: $timestamp"),
                             Text("Status: $status"),
+                            Text("Description: $description"),
                           ],
                         ),
                         trailing: Row(

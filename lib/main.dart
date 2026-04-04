@@ -1,3 +1,4 @@
+import 'package:fire_alert_app/screens/role_selection.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; // FlutterFire configuration
@@ -25,7 +26,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
       ),
-      home: ReportFireScreen(),
+      home: RoleSelectionScreen(),
     );
   }
 }

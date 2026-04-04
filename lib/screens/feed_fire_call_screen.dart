@@ -1,4 +1,4 @@
-// feed_fire_call_screen.dart
+// lib/screens/feed_fire_call_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -15,64 +15,45 @@ class _FeedFireCallScreenState extends State<FeedFireCallScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // Basic details
+  String description = '';
   String reporterName = '';
   String reporterPhone = '';
   String ward = '';
   String subCounty = '';
   String county = '';
 
-  // Dropdown selections
-  String? fireType;
-  String? fireSize;
-  String? evacuationStatus;
-
-  // Options
-  final List<String> fireTypes = [
-    'Forest/Bush Fire',
-    'House/Building Fire',
-    'Vehicle Fire',
-    'Electrical Fire',
-    'Industrial'
-  ];
-
-  final List<String> fireSizes = ['Small', 'Medium', 'Large'];
-
-  final List<String> evacuationOptions = [
-    "Evacuated",
-    "Evacuation in progress",
-    "People still inside",
-  ];
-
   /// 🔥 MARK AS HANDLED
   Future<void> markAsHandled() async {
     if (!_formKey.currentState!.validate()) return;
-
     _formKey.currentState!.save();
 
-    await FirebaseFirestore.instance.collection("reports").add({
-      "reporterName": reporterName,
-      "reporterPhone": reporterPhone,
-      "fireType": fireType ?? 'Unknown',
-      "fireSize": fireSize ?? 'Unknown',
-      "evacuationStatus": evacuationStatus ?? 'Unknown',
-      "ward": ward,
-      "subcounty": subCounty,
-      "county": county,
-      "handledBy": widget.stationName,
-      "status": "handled",
-      "timestamp": FieldValue.serverTimestamp(),
-    });
+    try {
+      await FirebaseFirestore.instance.collection("reports").add({
+        "description": description,
+        "reporterName": reporterName,
+        "reporterPhone": reporterPhone,
+        "ward": ward,
+        "subcounty": subCounty,
+        "county": county,
+        "handledBy": widget.stationName,
+        "status": "handled",
+        "timestamp": FieldValue.serverTimestamp(),
+      });
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Fire report saved as handled")),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Fire report saved as handled")),
+      );
 
-    Navigator.pop(context);
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to mark as handled: $e")),
+      );
+    }
   }
 
-  /// 🚒 ASSIGN TO STATION (INTER-STATION CHAT)
   /// 🚒 ASSIGN TO STATION (INTER-STATION CHAT)
   Future<void> assignToStation() async {
     if (!_formKey.currentState!.validate()) return;
@@ -84,36 +65,121 @@ class _FeedFireCallScreenState extends State<FeedFireCallScreen> {
 
     if (!mounted) return;
 
+    final String currentStation = widget.stationName;
+
+    List<Map<String, dynamic>> stations = stationsSnapshot.docs
+        .map((doc) => doc.data()..['id'] = doc.id)
+        .toList();
+
     showModalBottomSheet(
+      isScrollControlled: true,
       context: context,
       builder: (context) {
-        return ListView(
-          children: stationsSnapshot.docs.map((doc) {
-            final station = doc.data();
-            String selectedStation = station["station_name"];
+        TextEditingController searchController = TextEditingController();
 
-            return ListTile(
-              title: Text(selectedStation),
-              subtitle: Text(
-                "${station["ward"] ?? ''}, ${station["subCounty"] ?? ''}, ${station["county"] ?? ''}",
+        ValueNotifier<List<Map<String, dynamic>>> filteredStations =
+        ValueNotifier(stations);
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              /// 🔍 SEARCH BAR
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextField(
+                  controller: searchController,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: "Search station by name, phone, ward, county",
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (query) {
+                    String q = query.toLowerCase();
+
+                    filteredStations.value = stations.where((station) {
+                      return (station['station_name']
+                          ?.toLowerCase()
+                          .contains(q) ??
+                          false) ||
+                          (station['phone']
+                              ?.toLowerCase()
+                              .contains(q) ??
+                              false) ||
+                          (station['ward']
+                              ?.toLowerCase()
+                              .contains(q) ??
+                              false) ||
+                          (station['county']
+                              ?.toLowerCase()
+                              .contains(q) ??
+                              false);
+                    }).toList();
+                  },
+                ),
               ),
-              onTap: () async {
-                String currentStation = widget.stationName;
 
-                /// 🔥 CREATE CONSISTENT CHAT ID
-                List<String> stations = [currentStation, selectedStation];
-                stations.sort();
-                String chatId = "${stations[0]}_${stations[1]}";
-                /// 🔥 BUILD FIRE MESSAGE
-                String messageText = """
-🚒 FIRE ALERT DETAILS
+              /// 📋 STATIONS LIST
+              SizedBox(
+                height: 400,
+                child: ValueListenableBuilder<List<Map<String, dynamic>>>(
+                  valueListenable: filteredStations,
+                  builder: (context, list, _) {
+                    if (list.isEmpty) {
+                      return const Center(
+                        child: Text("No stations found"),
+                      );
+                    }
 
+                    return ListView.builder(
+                      itemCount: list.length,
+                      itemBuilder: (context, index) {
+                        final station = list[index];
+
+                        String selectedStation =
+                            station['station_name'] ?? '';
+
+                        /// ✅ DISPLAY NAME (YOU LABEL)
+                        String displayName = selectedStation == currentStation
+                            ? "You ($selectedStation)"
+                            : selectedStation;
+
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: selectedStation == currentStation
+                                ? Colors.blue
+                                : Colors.red,
+                            child: const Icon(
+                              Icons.local_fire_department,
+                              color: Colors.white,
+                            ),
+                          ),
+                          title: SelectableText(displayName),
+                          subtitle: SelectableText(
+                            "${station['ward'] ?? ''}, ${station['subCounty'] ?? ''}, ${station['county'] ?? ''}",
+                          ),
+
+                          /// 🚀 SEND MESSAGE
+                          onTap: () async {
+                            List<String> stationsNames = [
+                              currentStation,
+                              selectedStation
+                            ];
+
+                            stationsNames.sort();
+
+                            String chatId =
+                                "${stationsNames[0]}_${stationsNames[1]}";
+
+                            String messageText = """🚒 FIRE ALERT DETAILS
 Reporter: $reporterName
 Phone: ${reporterPhone.isEmpty ? 'N/A' : reporterPhone}
 
-Type: ${fireType ?? 'Unknown'}
-Size: ${fireSize ?? 'Unknown'}
-Evacuation: ${evacuationStatus ?? 'Unknown'}
+Description:
+$description
 
 Location:
 Ward: $ward
@@ -123,41 +189,51 @@ County: $county
 Please respond immediately.
 """;
 
-                final chatRef = FirebaseFirestore.instance
-                    .collection("interstation_chats")
-                    .doc(chatId);
+                            final chatRef = FirebaseFirestore.instance
+                                .collection("interstation_chats")
+                                .doc(chatId);
 
-                final messageRef = chatRef.collection("messages").doc();
+                            final messageRef =
+                            chatRef.collection("messages").doc();
 
-                /// 🔥 SAVE MESSAGE
-                await messageRef.set({
-                  "sender": currentStation,
-                  "text": messageText,
-                  "timestamp": FieldValue.serverTimestamp(),
-                });
+                            /// 📩 SAVE MESSAGE
+                            await messageRef.set({
+                              "sender": currentStation,
+                              "text": messageText,
+                              "timestamp": FieldValue.serverTimestamp(),
+                            });
 
-                /// 🔥 UPDATE CHAT METADATA
-                await chatRef.set({
-                  "participants": [stations[0], stations[1]],
-                  "lastMessage": messageText,
-                  "lastTimestamp": FieldValue.serverTimestamp(),
-                  "unread_${selectedStation}": FieldValue.increment(1),
-                  "unread_${currentStation}": 0,
-                }, SetOptions(merge: true));
+                            /// 🔄 UPDATE CHAT META
+                            await chatRef.set({
+                              "participants": stationsNames,
+                              "lastMessage": messageText,
+                              "lastTimestamp":
+                              FieldValue.serverTimestamp(),
+                              "unread_${selectedStation}":
+                              FieldValue.increment(1),
+                              "unread_${currentStation}": 0,
+                            }, SetOptions(merge: true));
 
-                if (!mounted) return;
+                            if (!mounted) return;
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Fire report sent to $selectedStation"),
-                  ),
-                );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: SelectableText(
+                                    "Fire report sent to $displayName"),
+                              ),
+                            );
 
-                Navigator.pop(context); // close bottom sheet
-                Navigator.pop(context); // exit screen
-              },
-            );
-          }).toList(),
+                            Navigator.pop(context); // close bottom sheet
+                            Navigator.pop(context); // exit screen
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -168,7 +244,7 @@ Please respond immediately.
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Feed Fire Call"),
+        title: const SelectableText("Feed Fire Call"),
         backgroundColor: Colors.red,
       ),
       body: Padding(
@@ -187,55 +263,30 @@ Please respond immediately.
               /// Reporter Phone
               TextFormField(
                 decoration: const InputDecoration(
-                  labelText: "Reporter Phone (optional)",
+                  labelText: "Reporter Phone",
                 ),
                 keyboardType: TextInputType.phone,
-                onSaved: (value) => reporterPhone = value?.trim() ?? '',
-              ),
-
-              const SizedBox(height: 12),
-
-              /// Fire Type
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: "Type of Fire"),
-                value: fireType,
-                items: fireTypes
-                    .map((type) =>
-                    DropdownMenuItem(value: type, child: Text(type)))
-                    .toList(),
-                validator: (value) => value == null ? "Select fire type" : null,
-                onChanged: (value) => setState(() => fireType = value),
-              ),
-
-              const SizedBox(height: 12),
-
-              /// Fire Size
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: "Size of Fire"),
-                value: fireSize,
-                items: fireSizes
-                    .map((size) =>
-                    DropdownMenuItem(value: size, child: Text(size)))
-                    .toList(),
-                validator: (value) => value == null ? "Select fire size" : null,
-                onChanged: (value) => setState(() => fireSize = value),
-              ),
-
-              const SizedBox(height: 12),
-
-              /// Evacuation Status
-              DropdownButtonFormField<String>(
-                decoration:
-                const InputDecoration(labelText: "Evacuation Status"),
-                value: evacuationStatus,
-                items: evacuationOptions
-                    .map((status) =>
-                    DropdownMenuItem(value: status, child: Text(status)))
-                    .toList(),
                 validator: (value) =>
-                value == null ? "Select evacuation status" : null,
-                onChanged: (value) =>
-                    setState(() => evacuationStatus = value),
+                value == null || value.isEmpty ? "Required" : null,
+                onSaved: (value) => reporterPhone = value!.trim(),
+              ),
+
+              const SizedBox(height: 12),
+
+              /// Fire Description
+              TextFormField(
+                initialValue: description,
+                maxLines: 6,
+                decoration: const InputDecoration(
+                  labelText: "📝 Fire Description",
+                  hintText:
+                  "Describe the fire:\n• What is burning? (e.g., house, car, forest, electrical wires)\n• How intense is it? (small, spreading, out of control)\n• Are people trapped or injured?",
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) =>
+                value == null || value.isEmpty ? "Describe the fire" : null,
+                onSaved: (value) => description = value!.trim(),
               ),
 
               const SizedBox(height: 12),
@@ -261,19 +312,18 @@ Please respond immediately.
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                       onPressed: markAsHandled,
-                      child: const Text("Mark as Handled"),
+                      child: const SelectableText("Mark as Handled"),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[200]),
+                      style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.grey[200]),
                       onPressed: assignToStation,
-                      child: const Text("Assign Station"),
+                      child: const SelectableText("Assign Station"),
                     ),
                   ),
                 ],

@@ -19,6 +19,10 @@ class _InterstationCommunicationScreenState
   String getChatId(String a, String b) {
     if (a.trim().isEmpty || b.trim().isEmpty) return "";
 
+    if (a == b) {
+      return "${a.trim()}_${a.trim()}"; // self chat
+    }
+
     List<String> stations = [a.trim(), b.trim()];
     stations.sort();
     return stations.join("_");
@@ -41,9 +45,9 @@ class _InterstationCommunicationScreenState
     var stationsSnapshot =
     await FirebaseFirestore.instance.collection("stations").get();
 
+    // Include self for self-chat
     List<String> stations = stationsSnapshot.docs
         .map((doc) => doc["station_name"] as String)
-        .where((name) => name != widget.stationName)
         .toList();
 
     showDialog(
@@ -59,13 +63,17 @@ class _InterstationCommunicationScreenState
               itemBuilder: (context, index) {
                 String otherStation = stations[index];
 
+                // Display "You (StationName)" for current station
+                String displayName = otherStation == widget.stationName
+                    ? "You (${widget.stationName})"
+                    : otherStation;
+
                 return ListTile(
-                  title: Text(otherStation),
+                  title: Text(displayName),
                   onTap: () async {
                     Navigator.pop(context);
 
-                    String chatId =
-                    getChatId(widget.stationName, otherStation);
+                    String chatId = getChatId(widget.stationName, otherStation);
 
                     if (chatId.isEmpty) return;
 
@@ -104,11 +112,18 @@ class _InterstationCommunicationScreenState
     List<String> stations = chatId.split("_");
 
     if (stations.length < 2) return null;
+
+    // ✅ SELF CHAT DISPLAY
+    if (stations[0] == widget.stationName &&
+        stations[1] == widget.stationName) {
+      return widget.stationName;
+    }
+
     if (!stations.contains(widget.stationName)) return null;
 
     return stations.firstWhere(
           (s) => s != widget.stationName,
-      orElse: () => "",
+      orElse: () => widget.stationName,
     );
   }
 
@@ -199,7 +214,11 @@ class _InterstationCommunicationScreenState
                         child: Icon(Icons.local_fire_department,
                             color: Colors.white),
                       ),
-                      title: Text(otherStation),
+                      title: SelectableText(
+                        otherStation == widget.stationName
+                            ? "You (${widget.stationName})"
+                            : otherStation,
+                      ),
                       subtitle: Text(
                         data["lastMessage"] ?? "No messages yet",
                         maxLines: 1,
@@ -219,7 +238,8 @@ class _InterstationCommunicationScreenState
                               ),
                             ),
                           IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
+                            icon:
+                            const Icon(Icons.delete, color: Colors.red),
                             onPressed: () {
                               showDialog(
                                 context: context,
@@ -341,7 +361,9 @@ class _StationChatPageState extends State<StationChatPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.otherStation),
+        title: Text(widget.otherStation == widget.stationName
+            ? "You (${widget.stationName})"
+            : widget.otherStation),
         backgroundColor: Colors.blue,
       ),
       body: Column(
@@ -370,9 +392,14 @@ class _StationChatPageState extends State<StationChatPage> {
 
                     bool isMe = data["sender"] == widget.stationName;
 
+                    String senderLabel = isMe
+                        ? "You (${widget.stationName})"
+                        : data["sender"] ?? "";
+
                     return Align(
-                      alignment:
-                      isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment: isMe
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
                       child: Container(
                         margin: const EdgeInsets.symmetric(
                             vertical: 4, horizontal: 10),
@@ -381,11 +408,30 @@ class _StationChatPageState extends State<StationChatPage> {
                           color: isMe ? Colors.blue : Colors.grey[300],
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          data["text"] ?? "",
-                          style: TextStyle(
-                            color: isMe ? Colors.white : Colors.black,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: isMe
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            SelectableText(
+                              senderLabel,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isMe
+                                    ? Colors.white70
+                                    : Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            SelectableText(
+                              data["text"] ?? "",
+                              style: TextStyle(
+                                color: isMe
+                                    ? Colors.white
+                                    : Colors.black,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -401,6 +447,10 @@ class _StationChatPageState extends State<StationChatPage> {
                 Expanded(
                   child: TextField(
                     controller: messageController,
+                    textInputAction: TextInputAction.send, // shows send button on keyboard
+                    onSubmitted: (value) {
+                      sendMessage();
+                    },
                     decoration: const InputDecoration(
                       hintText: "Type message...",
                       border: OutlineInputBorder(),

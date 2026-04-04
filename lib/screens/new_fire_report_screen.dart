@@ -12,44 +12,26 @@ class NewFireReportScreen extends StatefulWidget {
 
 class _NewFireReportScreenState extends State<NewFireReportScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  String? fireType;
-  String? fireSize;
-  String? evacuationStatus;
-
-  final List<String> fireTypes = [
-    'Station Fire',
-  ];
-
-  final List<String> fireSizes = [
-    "Small",
-    "Medium",
-    "Large",
-  ];
-
-  final List<String> evacuationStatuses = [
-    "Evacuated",
-    "Evacuation in progress",
-    "People still inside",
-  ];
+  final TextEditingController fireDescriptionController =
+  TextEditingController();
 
   /// 🔥 SUBMIT REPORT
   void _submitReport() async {
     if (_formKey.currentState!.validate()) {
       try {
-        /// 🔍 QUERY STATION BY NAME
+        // 🔍 GET STATION
         final querySnapshot = await FirebaseFirestore.instance
             .collection("stations")
             .where("station_name", isEqualTo: widget.stationName)
             .limit(1)
             .get();
 
+        if (!mounted) return;
+
+        // ❌ NO STATION FOUND
         if (querySnapshot.docs.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Station not found in database"),
-              backgroundColor: Colors.red,
-            ),
+            const SnackBar(content: Text("Station not found")),
           );
           return;
         }
@@ -60,38 +42,27 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
         final String ward = stationData["ward"] ?? "";
         final String subcounty = stationData["subcounty"] ?? "";
         final String county = stationData["county"] ?? "";
-        final String phoneNumber = stationData["phone"] ?? ""; // <-- fetch phone
+        final String phoneNumber = stationData["phone"] ?? "";
 
-        /// 🔥 SAVE REPORT WITH LOCATION
+        /// 🔥 SAVE REPORT
         await FirebaseFirestore.instance.collection("reports").add({
-
-          /// 📍 AUTO LOCATION FROM MATCHED STATION
           "ward": ward,
           "subcounty": subcounty,
           "county": county,
-
-          /// 🚒 STATION INFO
           "reporterName": widget.stationName,
-          "reporterPhone": phoneNumber, // <-- new field
+          "reporterPhone": phoneNumber,
           "locationType": "station",
           "isStationOnFire": true,
-
-          /// 🔥 FIRE DETAILS
-          "fireType": fireType ?? "Station Fire",
-          "fireSize": fireSize,
-          "evacuationStatus": evacuationStatus,
-
-          /// 🆕 STATUS FIELD
+          "description": fireDescriptionController.text.trim(),
           "status": "pending",
-
-          /// ⏱ TIME
           "timestamp": DateTime.now(),
-
-          /// OPTIONAL
           "latitude": null,
           "longitude": null,
         });
 
+        if (!mounted) return;
+
+        // ✅ SUCCESS MESSAGE
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("🚨 Fire reported with station location"),
@@ -99,9 +70,12 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
           ),
         );
 
+        // ✅ GO BACK
         Navigator.pop(context);
-
       } catch (e) {
+        if (!mounted) return;
+
+        // ❌ ERROR MESSAGE
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Error: $e"),
@@ -113,6 +87,12 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
   }
 
   @override
+  void dispose() {
+    fireDescriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -121,13 +101,10 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-
         child: Form(
           key: _formKey,
-
           child: ListView(
             children: [
-
               /// 🚒 STATION DISPLAY
               Container(
                 padding: const EdgeInsets.all(12),
@@ -144,65 +121,24 @@ class _NewFireReportScreenState extends State<NewFireReportScreen> {
 
               const SizedBox(height: 20),
 
-              /// 🔥 FIRE TYPE
-              DropdownButtonFormField<String>(
-                value: fireType,
-                hint: const Text("Select Fire Type"),
-                items: fireTypes.map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    fireType = value;
-                  });
+              /// 🔥 FIRE DESCRIPTION
+              TextFormField(
+                controller: fireDescriptionController,
+                maxLines: 6,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText:
+                  "Describe the fire:\n"
+                      "• What is burning? (e.g., house, car, forest, electrical wires)\n"
+                      "• How intense is it? (small, spreading, out of control)\n"
+                      "• Are people trapped or injured?",
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Please describe the fire";
+                  }
+                  return null;
                 },
-                validator: (value) =>
-                value == null ? "Select fire type" : null,
-              ),
-
-              const SizedBox(height: 15),
-
-              /// 🔥 FIRE SIZE
-              DropdownButtonFormField<String>(
-                value: fireSize,
-                hint: const Text("Select Fire Size"),
-                items: fireSizes.map((size) {
-                  return DropdownMenuItem(
-                    value: size,
-                    child: Text(size),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    fireSize = value;
-                  });
-                },
-                validator: (value) =>
-                value == null ? "Select fire size" : null,
-              ),
-
-              const SizedBox(height: 15),
-
-              /// 🚨 EVACUATION STATUS
-              DropdownButtonFormField<String>(
-                value: evacuationStatus,
-                hint: const Text("Evacuation Status"),
-                items: evacuationStatuses.map((status) {
-                  return DropdownMenuItem(
-                    value: status,
-                    child: Text(status),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    evacuationStatus = value;
-                  });
-                },
-                validator: (value) =>
-                value == null ? "Select evacuation status" : null,
               ),
 
               const SizedBox(height: 25),
