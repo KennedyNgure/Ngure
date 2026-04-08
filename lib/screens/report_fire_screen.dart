@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'registration_screen.dart';
+
 final FireReportService service = FireReportService();
+
 // =====================================
 // FIRE REPORT SERVICE
 // =====================================
@@ -37,6 +39,7 @@ class FireReportService {
     });
   }
 }
+
 // =====================================
 // REPORT FIRE SCREEN
 // =====================================
@@ -53,6 +56,7 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   bool isLoading = false;
 
@@ -111,12 +115,7 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
 
   // REPORT FIRE
   Future<void> reportFire() async {
-    if (nameController.text.trim().isEmpty || phoneController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter Full Name and Phone Number")),
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     if (descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -129,7 +128,8 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
       setState(() => isLoading = true);
 
       Position position = await getLocation();
-      final locationDetails = await getLocationDetails(position.latitude, position.longitude);
+      final locationDetails =
+      await getLocationDetails(position.latitude, position.longitude);
 
       await service.submitReport(
         description: descriptionController.text.trim(),
@@ -171,15 +171,19 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
           TextButton(
             child: const Text("Safety Tips", style: TextStyle(color: Colors.white)),
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const SafetyTipsScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SafetyTipsScreen()),
+              );
             },
           ),
           TextButton(
             child: const Text("Emergency Contacts", style: TextStyle(color: Colors.white)),
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const EmergencyContactsScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EmergencyContactsScreen()),
+              );
             },
           ),
         ],
@@ -187,49 +191,78 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: "Full Name",
-                  border: OutlineInputBorder(),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                // Full Name
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: "Full Name",
+                    hintText: "John Doe",
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "Please enter your full name";
+                    }
+                    if (!RegExp(r"^[a-zA-Z ]+$").hasMatch(value.trim())) {
+                      return "Name can contain letters and spaces only";
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              const SizedBox(height: 15),
-              TextField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: "Phone Number",
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 15),
+                // Phone Number
+                TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: "Phone Number",
+                    hintText: "0XXXXXXXXX",
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "Please enter your phone number";
+                    }
+                    if (!RegExp(r"^[0-9]{10}$").hasMatch(value.trim())) {
+                      return "Enter a valid 10-digit phone number";
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              const SizedBox(height: 15),
-              TextField(
-                controller: descriptionController,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: "Fire Description;",
-                  hintText: "Describe the fire:\n"
-                      "• What is burning? (e.g., house, car, forest, electrical wires)\n"
-                      "• How intense is it? (small, spreading, out of control)\n"
-                      "• Are people trapped or injured?",
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 15),
+                // Fire Description
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: "Fire Description",
+                    hintText: "Describe the fire:\n"
+                        "• What is burning? (e.g., house, car, forest, electrical wires)\n"
+                        "• How intense is it? (small, spreading, out of control)\n"
+                        "• Are people trapped or injured?",
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 30),
-              isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                const SizedBox(height: 30),
+                isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  ),
+                  onPressed: reportFire,
+                  child: const Text(
+                    "🚨 REPORT FIRE",
+                    style: TextStyle(fontSize: 20),
+                  ),
                 ),
-                onPressed: reportFire,
-                child: const Text("🚨 REPORT FIRE", style: TextStyle(fontSize: 20)),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -253,26 +286,34 @@ class SafetyTipsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: const [
-          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Stay calm and evacuate immediately.")),
-          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Do not use elevators during a fire.")),
-          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Cover nose and mouth with cloth to avoid smoke.")),
-          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Stay low to the ground when escaping smoke.")),
-          ListTile(leading: Icon(Icons.warning, color: Colors.red), title: Text("Call emergency services immediately.")),
+          ListTile(
+              leading: Icon(Icons.warning, color: Colors.red),
+              title: Text("Stay calm and evacuate immediately.")),
+          ListTile(
+              leading: Icon(Icons.warning, color: Colors.red),
+              title: Text("Do not use elevators during a fire.")),
+          ListTile(
+              leading: Icon(Icons.warning, color: Colors.red),
+              title: Text("Cover nose and mouth with cloth to avoid smoke.")),
+          ListTile(
+              leading: Icon(Icons.warning, color: Colors.red),
+              title: Text("Stay low to the ground when escaping smoke.")),
+          ListTile(
+              leading: Icon(Icons.warning, color: Colors.red),
+              title: Text("Call emergency services immediately.")),
         ],
       ),
     );
   }
 }
-// =====================================
-// EMERGENCY CONTACTS SCREEN
-// =====================================
+// ===================================== //
+// EMERGENCY CONTACTS SCREEN //
+// =====================================//
 class EmergencyContactsScreen extends StatefulWidget {
   const EmergencyContactsScreen({super.key});
-
   @override
   State<EmergencyContactsScreen> createState() => _EmergencyContactsScreenState();
 }
-
 class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   String? selectedCounty;
   String? selectedSubcounty;
@@ -291,14 +332,12 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     loadCounties();
   }
 
-  // Load all counties from Firestore
   Future<void> loadCounties() async {
     final querySnapshot = await _firestore.collection('stations').get();
     final countySet = querySnapshot.docs.map((doc) => doc['county'] as String).toSet();
     setState(() => counties = countySet.toList());
   }
 
-  // Load subcounties based on selected county
   Future<void> loadSubcounties() async {
     if (selectedCounty == null) return;
     final querySnapshot = await _firestore
@@ -315,7 +354,6 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     });
   }
 
-  // Load wards based on selected county & subcounty
   Future<void> loadWards() async {
     if (selectedCounty == null || selectedSubcounty == null) return;
     final querySnapshot = await _firestore
@@ -331,7 +369,6 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     });
   }
 
-  // Load stations based on county, subcounty, and ward
   Future<void> loadStations() async {
     if (selectedCounty == null || selectedSubcounty == null || selectedWard == null) return;
     final querySnapshot = await _firestore
@@ -345,7 +382,6 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     });
   }
 
-  // Call a phone number
   Future<void> callNumber(String number) async {
     final Uri phoneUri = Uri(scheme: 'tel', path: number);
     if (await canLaunchUrl(phoneUri)) {
@@ -368,6 +404,22 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // 999 Emergency Button
+            ElevatedButton.icon(
+              icon: const Icon(Icons.phone, color: Colors.white),
+              label: const Text(
+                "Call 999",
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                minimumSize: const Size.fromHeight(50),
+              ),
+              onPressed: () {
+                callNumber("999");
+              },
+            ),
+            const SizedBox(height: 20),
             // County dropdown
             DropdownButton<String>(
               isExpanded: true,
@@ -407,7 +459,8 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
             // Station list
             Expanded(
               child: stations.isEmpty
-                  ? const Center(child: Text("Select ward, subcounty, and county to view stations"))
+                  ? const Center(
+                  child: Text("Select ward, subcounty, and county to view stations"))
                   : ListView.separated(
                 itemCount: stations.length,
                 separatorBuilder: (_, __) => const Divider(),

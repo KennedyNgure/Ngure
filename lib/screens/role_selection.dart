@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'report_fire_screen.dart';
 import 'registration_screen.dart';
+import 'faq_screen.dart'; // ✅ ADD THIS
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -8,7 +9,28 @@ class RoleSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Fire Alert App")),
+      appBar: AppBar(
+        title: const Text("Fire Alert App"),
+        actions: [
+            TextButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FAQScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.help_outline, color: Colors.red),
+              label: const Text(
+                "FAQs",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+      ),
+
+      // ✅ ADD BODY BACK
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -21,7 +43,7 @@ class RoleSelectionScreen extends StatelessWidget {
 
             const SizedBox(height: 40),
 
-            // Reporter Button
+            // 🚨 Reporter Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(200, 50),
@@ -39,7 +61,7 @@ class RoleSelectionScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Fire Station Officer Button
+            // 🚒 Fire Station Officer Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(200, 50),

@@ -105,18 +105,9 @@ class _FeedFireCallScreenState extends State<FeedFireCallScreen> {
                           ?.toLowerCase()
                           .contains(q) ??
                           false) ||
-                          (station['phone']
-                              ?.toLowerCase()
-                              .contains(q) ??
-                              false) ||
-                          (station['ward']
-                              ?.toLowerCase()
-                              .contains(q) ??
-                              false) ||
-                          (station['county']
-                              ?.toLowerCase()
-                              .contains(q) ??
-                              false);
+                          (station['phone']?.toLowerCase().contains(q) ?? false) ||
+                          (station['ward']?.toLowerCase().contains(q) ?? false) ||
+                          (station['county']?.toLowerCase().contains(q) ?? false);
                     }).toList();
                   },
                 ),
@@ -139,8 +130,7 @@ class _FeedFireCallScreenState extends State<FeedFireCallScreen> {
                       itemBuilder: (context, index) {
                         final station = list[index];
 
-                        String selectedStation =
-                            station['station_name'] ?? '';
+                        String selectedStation = station['station_name'] ?? '';
 
                         /// ✅ DISPLAY NAME (YOU LABEL)
                         String displayName = selectedStation == currentStation
@@ -207,8 +197,7 @@ Please respond immediately.
                             await chatRef.set({
                               "participants": stationsNames,
                               "lastMessage": messageText,
-                              "lastTimestamp":
-                              FieldValue.serverTimestamp(),
+                              "lastTimestamp": FieldValue.serverTimestamp(),
                               "unread_${selectedStation}":
                               FieldValue.increment(1),
                               "unread_${currentStation}": 0,
@@ -218,8 +207,8 @@ Please respond immediately.
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: SelectableText(
-                                    "Fire report sent to $displayName"),
+                                content:
+                                SelectableText("Fire report sent to $displayName"),
                               ),
                             );
 
@@ -255,8 +244,20 @@ Please respond immediately.
             children: [
               /// Reporter Name
               TextFormField(
-                decoration: const InputDecoration(labelText: "Reporter Name"),
-                validator: (value) => value!.isEmpty ? "Required" : null,
+                decoration: const InputDecoration(
+                  labelText: "Reporter Name",
+                  hintText: "Full Name (Alphabets Only)",
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Required";
+                  }
+                  final nameRegEx = RegExp(r"^[a-zA-Z\s]+$");
+                  if (!nameRegEx.hasMatch(value.trim())) {
+                    return "Only alphabets allowed";
+                  }
+                  return null;
+                },
                 onSaved: (value) => reporterName = value!.trim(),
               ),
 
@@ -264,10 +265,17 @@ Please respond immediately.
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: "Reporter Phone",
+                  hintText: "0XXXXXXXXX",
                 ),
                 keyboardType: TextInputType.phone,
-                validator: (value) =>
-                value == null || value.isEmpty ? "Required" : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return "Required";
+                  final phoneRegEx = RegExp(r"^0\d{9}$");
+                  if (!phoneRegEx.hasMatch(value)) {
+                    return "Enter a valid 10-digit number starting with 0";
+                  }
+                  return null;
+                },
                 onSaved: (value) => reporterPhone = value!.trim(),
               ),
 
@@ -301,7 +309,20 @@ Please respond immediately.
                 onSaved: (value) => subCounty = value!.trim(),
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: "County"),
+                decoration: const InputDecoration(
+                  labelText: "County",
+                  hintText: "Alphabets only",
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Required";
+                  }
+                  final alphaRegEx = RegExp(r"^[a-zA-Z\s]+$");
+                  if (!alphaRegEx.hasMatch(value.trim())) {
+                    return "Only alphabets allowed";
+                  }
+                  return null;
+                },
                 onSaved: (value) => county = value!.trim(),
               ),
 
@@ -312,7 +333,8 @@ Please respond immediately.
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                      style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
                       onPressed: markAsHandled,
                       child: const SelectableText("Mark as Handled"),
                     ),
@@ -320,8 +342,8 @@ Please respond immediately.
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.grey[200]),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[200]),
                       onPressed: assignToStation,
                       child: const SelectableText("Assign Station"),
                     ),
