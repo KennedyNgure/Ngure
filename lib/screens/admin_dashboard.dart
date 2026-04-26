@@ -6,7 +6,7 @@ import 'registered_stations_screen.dart';
 import 'safety_tips01.dart';
 import 'fire_reports_screen.dart';
 import 'login_screen.dart';
-import 'faq_screen.dart'; // ✅ ADD THIS IMPORT
+import 'faq_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   final bool isAdmin;
@@ -26,7 +26,44 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return now.subtract(Duration(days: now.weekday - 1));
   }
 
-  /// 🔥 TOP CARDS
+  /// 🔥 MATCHED CARD (same as statistics cards)
+  Widget buildTopCard({
+    required IconData icon,
+    required Color color,
+    required String label,
+    String? value,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Card(
+          elevation: 3,
+          child: Padding(
+            padding: const EdgeInsets.all(10), // same as stats
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: color, size: 30), // same size
+                const SizedBox(height: 5),
+                Text(label),
+                if (value != null)
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 20, // same as stats numbers
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 🔥 TOP CARDS (NOW SAME SIZE AS STATS)
   Widget buildTopCards(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection("reports").snapshots(),
@@ -46,11 +83,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
             int stationCount = stationSnapshot.data!.docs.length;
 
             return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-
-                /// 🔥 Reports
-                InkWell(
+                buildTopCard(
+                  icon: Icons.local_fire_department,
+                  color: Colors.red,
+                  label: "Reports",
+                  value: reportCount.toString(),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -60,25 +98,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                     );
                   },
-                  child: Card(
-                    child: Container(
-                      width: 120,
-                      padding: const EdgeInsets.all(15),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.local_fire_department,
-                              color: Colors.red, size: 40),
-                          const SizedBox(height: 10),
-                          const Text("Reports"),
-                          Text(reportCount.toString()),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
-
-                /// 🚒 Stations
-                InkWell(
+                buildTopCard(
+                  icon: Icons.fire_truck,
+                  color: Colors.blue,
+                  label: "Stations",
+                  value: stationCount.toString(),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -88,25 +113,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                     );
                   },
-                  child: Card(
-                    child: Container(
-                      width: 120,
-                      padding: const EdgeInsets.all(15),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.fire_truck,
-                              color: Colors.blue, size: 40),
-                          const SizedBox(height: 10),
-                          const Text("Stations"),
-                          Text(stationCount.toString()),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
-
-                /// 🛡️ Safety Tips
-                InkWell(
+                buildTopCard(
+                  icon: Icons.health_and_safety,
+                  color: Colors.green,
+                  label: "Safety tips",
                   onTap: () {
                     Navigator.push(
                       context,
@@ -115,24 +126,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                     );
                   },
-                  child: Card(
-                    child: Container(
-                      width: 120,
-                      padding: const EdgeInsets.all(15),
-                      child: Column(
-                        children: const [
-                          Icon(Icons.health_and_safety,
-                              color: Colors.green, size: 40),
-                          SizedBox(height: 10),
-                          Text("Safety"),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
-
-                /// ❓ FAQs (NEW)
-                InkWell(
+                buildTopCard(
+                  icon: Icons.help_outline,
+                  color: Colors.purple,
+                  label: "FAQs",
                   onTap: () {
                     Navigator.push(
                       context,
@@ -142,20 +140,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                     );
                   },
-                  child: Card(
-                    child: Container(
-                      width: 120,
-                      padding: const EdgeInsets.all(15),
-                      child: Column(
-                        children: const [
-                          Icon(Icons.help_outline,
-                              color: Colors.purple, size: 40),
-                          SizedBox(height: 10),
-                          Text("FAQs"),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
               ],
             );
@@ -198,7 +182,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         }
 
         return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             statCard("Today", todayCount, Icons.today, Colors.red),
             statCard("Week", weekCount, Icons.calendar_view_week, Colors.orange),
