@@ -5,16 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-
-final FireReportService service = FireReportService();
-
 // =====================================
 // FIRE REPORT SERVICE
 // =====================================
 class FireReportService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future submitReport({
+  Future<void> submitReport({
     required String description,
     required double lat,
     required double lon,
@@ -43,9 +40,7 @@ class FireReportService {
 // REPORT FIRE SCREEN
 // =====================================
 class ReportFireScreen extends StatefulWidget {
-  final String? stationName;
-
-  const ReportFireScreen({super.key, this.stationName});
+  const ReportFireScreen({super.key});
 
   @override
   State<ReportFireScreen> createState() => _ReportFireScreenState();
@@ -56,295 +51,171 @@ class _ReportFireScreenState extends State<ReportFireScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final FireReportService service = FireReportService();
 
   bool isLoading = false;
 
-  // GET LOCATION
-  Future<Position> getLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "📍 Location must be ON to capture your location as the fire reporter.",
-          ),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 5),
-        ),
-      );
-      throw Exception("Location services are disabled.");
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "❌ Location permission is permanently denied. Enable it in settings.",
-          ),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 5),
-        ),
-      );
-      throw Exception("Location permission permanently denied.");
-    }
-
-    return await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+  InputDecoration _inputStyle(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.red),
+      filled: true,
+      fillColor: Colors.grey[50],
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[300]!)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.red, width: 2)),
     );
   }
 
-  // REVERSE GEOCODING
-  Future<Map<String, String>> getLocationDetails(double lat, double lon) async {
-    final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon');
-    final response = await http.get(url, headers: {'User-Agent': 'fire_app'});
-    final data = json.decode(response.body);
-    final address = data['address'];
+  Future<Position> getLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) throw Exception("Location services are disabled.");
 
-    return {
-      "ward": address['town'] ?? address['village'] ?? address['suburb'] ?? "Unknown",
-      "subcounty": address['county'] ?? "Unknown",
-      "county": address['state'] ?? "Unknown",
-    };
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.deniedForever) throw Exception("Permission denied.");
+
+    return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
   }
 
-  // REPORT FIRE
+  Future<Map<String, String>> getLocationDetails(double lat, double lon) async {
+    try {
+      final url = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon');
+      final response = await http.get(url, headers: {'User-Agent': 'fire_app'});
+      final data = json.decode(response.body);
+      final address = data['address'] ?? {};
+
+      return {
+        "ward": address['town'] ?? address['village'] ?? address['suburb'] ?? "Unknown",
+        "subcounty": address['county'] ?? "Unknown",
+        "county": address['state'] ?? "Unknown",
+      };
+    } catch (e) {
+      return {"ward": "Unknown", "subcounty": "Unknown", "county": "Unknown"};
+    }
+  }
+
   Future<void> reportFire() async {
     if (!_formKey.currentState!.validate()) return;
-
-    if (descriptionController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter Fire Description")),
-      );
-      return;
-    }
+    setState(() => isLoading = true);
 
     try {
-      setState(() => isLoading = true);
-
       Position position = await getLocation();
-      final locationDetails =
-      await getLocationDetails(position.latitude, position.longitude);
+      final loc = await getLocationDetails(position.latitude, position.longitude);
 
       await service.submitReport(
         description: descriptionController.text.trim(),
         lat: position.latitude,
         lon: position.longitude,
-        ward: locationDetails["ward"]!,
-        subcounty: locationDetails["subcounty"]!,
-        county: locationDetails["county"]!,
+        ward: loc["ward"]!,
+        subcounty: loc["subcounty"]!,
+        county: loc["county"]!,
         name: nameController.text.trim(),
         phone: phoneController.text.trim(),
       );
 
-      setState(() => isLoading = false);
-      nameController.clear();
-      phoneController.clear();
+      _showSnackBar("🚨 Fire Report Sent Successfully", Colors.green);
       descriptionController.clear();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("🚨 Fire Report Sent Successfully"),
-          backgroundColor: Colors.green,
-        ),
-      );
     } catch (e) {
+      _showSnackBar("Error: Check Location Settings", Colors.red);
+    } finally {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
-      );
     }
   }
 
+  void _showSnackBar(String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color, behavior: SnackBarBehavior.floating));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Report Fire"),
-        backgroundColor: Colors.red,
-        actions: [
-          TextButton(
-            child: const Text("Safety Tips", style: TextStyle(color: Colors.white)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SafetyTipsScreen()),
-              );
-            },
-          ),
-          TextButton(
-            child: const Text("Emergency Contacts", style: TextStyle(color: Colors.white)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const EmergencyContactsScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                // Full Name
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: "Full Name",
-                    hintText: "John Doe",
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Please enter your full name";
-                    }
-                    if (!RegExp(r"^[a-zA-Z ]+$").hasMatch(value.trim())) {
-                      return "Name can contain letters and spaces only";
-                    }
-                    return null;
-                  },
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(controller: nameController, decoration: _inputStyle("Full Name", Icons.person), validator: (v) => v!.isEmpty ? "Required" : null),
+                    const SizedBox(height: 16),
+                    TextFormField(controller: phoneController, keyboardType: TextInputType.phone, decoration: _inputStyle("Phone Number", Icons.phone), validator: (v) => v!.length < 10 ? "Invalid phone" : null),
+                    const SizedBox(height: 16),
+                    TextFormField(controller: descriptionController, maxLines: 4, decoration: _inputStyle("Fire Description", Icons.description), validator: (v) => v!.isEmpty ? "Describe the fire" : null),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 5),
+                        onPressed: isLoading ? null : reportFire,
+                        child: isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("🚨 DISPATCH REPORT", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 15),
-                // Phone Number
-                TextFormField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: "Phone Number",
-                    hintText: "0XXXXXXXXX",
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Please enter your phone number";
-                    }
-                    if (!RegExp(r"^[0-9]{10}$").hasMatch(value.trim())) {
-                      return "Enter a valid 10-digit phone number";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 15),
-                // Fire Description
-                TextField(
-                  controller: descriptionController,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: "Fire Description",
-                    hintText: "Describe the fire:\n"
-                        "• What is burning? (e.g., house, car, forest, electrical wires)\n"
-                        "• How intense is it? (small, spreading, out of control)\n"
-                        "• Are people trapped or injured?",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                isLoading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                  ),
-                  onPressed: reportFire,
-                  child: const Text(
-                    "🚨 REPORT FIRE",
-                    style: TextStyle(fontSize: 20),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
-}
 
-// =====================================
-// SAFETY TIPS SCREEN
-// =====================================
-
-class SafetyTipsScreen extends StatelessWidget {
-  const SafetyTipsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final tipsRef = FirebaseFirestore.instance.collection('safety_tips');
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Fire Safety Tips"),
-        backgroundColor: Colors.orange,
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 30),
+      decoration: const BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Report Fire", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+          const Text("Every second counts. Fill details below.", style: TextStyle(color: Colors.white70, fontSize: 16)),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _headerButton(Icons.health_and_safety, "Safety Tips", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetyTipsScreen()))),
+              const SizedBox(width: 12),
+              _headerButton(Icons.call, "Emergency Contacts", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmergencyContactsScreen()))),
+            ],
+          )
+        ],
+      ),
+    );
+  }
 
-      body: StreamBuilder<QuerySnapshot>(
-        stream: tipsRef.snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text("Something went wrong loading tips"),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No tips available"));
-          }
-
-          final tips = snapshot.data!.docs;
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: tips.length,
-            itemBuilder: (context, index) {
-              final data = tips[index].data() as Map<String, dynamic>;
-
-              // ✅ SAFE ACCESS (prevents crash)
-              final tipText = data['description'] ?? 'No tip available';
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 10),
-                child: ListTile(
-                  leading: const Icon(Icons.warning, color: Colors.red),
-                  title: Text(tipText),
-                ),
-              );
-            },
-          );
-        },
+  Widget _headerButton(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+        child: Row(children: [Icon(icon, color: Colors.white, size: 18), const SizedBox(width: 8), Text(label, style: const TextStyle(color: Colors.white))]),
       ),
     );
   }
 }
+
 // =====================================
-// EMERGENCY CONTACTS SCREEN
+// EMERGENCY CONTACTS SCREEN (ROBUST VERSION)
 // =====================================
 class EmergencyContactsScreen extends StatefulWidget {
   const EmergencyContactsScreen({super.key});
 
   @override
-  State<EmergencyContactsScreen> createState() =>
-      _EmergencyContactsScreenState();
+  State<EmergencyContactsScreen> createState() => _EmergencyContactsScreenState();
 }
 
 class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
-  String? selectedCounty;
-  String? selectedSubcounty;
-  String? selectedWard;
-
+  String? selectedCounty, selectedSubcounty, selectedWard;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<String> counties = [];
@@ -352,230 +223,302 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   List<String> wards = [];
   List<Map<String, dynamic>> stations = [];
 
+  bool isLoadingCounties = true;
+  bool isLoadingSubcounties = false;
+  bool isLoadingWards = false;
+  bool isLoadingStations = false;
+
   @override
   void initState() {
     super.initState();
-    loadCounties();
+    _loadInitialData();
   }
 
-  // ================================
-// LOAD COUNTIES (VERIFIED ONLY)
-// ================================
-  Future<void> loadCounties() async {
-    final querySnapshot = await _firestore
-        .collection('stations')
-        .where('status', isEqualTo: 'verified')
-        .get();
-
-    final countySet = querySnapshot.docs
-        .map((doc) => doc['county'] as String)
-        .toSet();
-
-    setState(() => counties = countySet.toList());
-  }
-
-// ================================
-// LOAD SUBCOUNTIES (VERIFIED ONLY)
-// ================================
-  Future<void> loadSubcounties() async {
-    if (selectedCounty == null) return;
-
-    final querySnapshot = await _firestore
-        .collection('stations')
-        .where('status', isEqualTo: 'verified')
-        .where('county', isEqualTo: selectedCounty)
-        .get();
-
-    final subcountySet = querySnapshot.docs
-        .map((doc) => doc['subcounty'] as String)
-        .toSet();
-
-    setState(() {
-      subcounties = subcountySet.toList();
-      selectedSubcounty = null;
-      wards = [];
-      selectedWard = null;
-      stations = [];
+  Future<void> _loadInitialData() async {
+    await _loadData('county', null, (list) {
+      setState(() {
+        counties = list;
+        isLoadingCounties = false;
+      });
     });
   }
 
-// ================================
-// LOAD WARDS (VERIFIED ONLY)
-// ================================
-  Future<void> loadWards() async {
-    if (selectedCounty == null || selectedSubcounty == null) return;
+  Future<void> _loadData(String field, String? filterValue, Function(List<String>) onComplete) async {
+    try {
+      Query query = _firestore.collection('stations').where('status', isEqualTo: 'verified');
 
-    final querySnapshot = await _firestore
-        .collection('stations')
-        .where('status', isEqualTo: 'verified')
-        .where('county', isEqualTo: selectedCounty)
-        .where('subcounty', isEqualTo: selectedSubcounty)
-        .get();
+      if (filterValue != null) {
+        if (field == 'subcounty') query = query.where('county', isEqualTo: filterValue);
+        if (field == 'ward') query = query.where('subcounty', isEqualTo: filterValue);
+      }
 
-    final wardSet = querySnapshot.docs
-        .map((doc) => doc['ward'] as String)
-        .toSet();
+      final snap = await query.get();
 
-    setState(() {
-      wards = wardSet.toList();
-      selectedWard = null;
-      stations = [];
-    });
-  }
+      final Set<String> uniqueValues = {};
+      for (var doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (data[field] != null && data[field].toString().isNotEmpty) {
+          uniqueValues.add(data[field].toString());
+        }
+      }
 
-// ================================
-// LOAD STATIONS (VERIFIED ONLY)
-// ================================
-  Future<void> loadStations() async {
-    if (selectedCounty == null ||
-        selectedSubcounty == null ||
-        selectedWard == null) {
-      return;
+      List<String> sortedList = uniqueValues.toList();
+      sortedList.sort();
+      onComplete(sortedList);
+    } catch (e) {
+      debugPrint("Error fetching $field: $e");
     }
-
-    final querySnapshot = await _firestore
-        .collection('stations')
-        .where('status', isEqualTo: 'verified')
-        .where('county', isEqualTo: selectedCounty)
-        .where('subcounty', isEqualTo: selectedSubcounty)
-        .where('ward', isEqualTo: selectedWard)
-        .get();
-
-    setState(() {
-      stations = querySnapshot.docs.map((doc) => doc.data()).toList();
-    });
   }
 
-  Future<void> callNumber(String number) async {
-    final Uri phoneUri = Uri(scheme: 'tel', path: number);
-
-    if (await canLaunchUrl(phoneUri)) {
-      await launchUrl(phoneUri);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Cannot launch phone app")),
-      );
+  Future<void> _loadStations() async {
+    if (selectedWard == null) return;
+    setState(() => isLoadingStations = true);
+    try {
+      final snap = await _firestore
+          .collection('stations')
+          .where('status', isEqualTo: 'verified')
+          .where('ward', isEqualTo: selectedWard)
+          .get();
+      setState(() {
+        stations = snap.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+        isLoadingStations = false;
+      });
+    } catch (e) {
+      setState(() => isLoadingStations = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Emergency Contacts"),
-        backgroundColor: Colors.blue,
+        title: const Text("Station Contacts", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.blue[800],
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
       ),
-
-      // ================= BODY =================
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // County dropdown
-            DropdownButton<String>(
-              isExpanded: true,
-              hint: const Text("Select County"),
-              value: selectedCounty,
-              items: counties
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                  .toList(),
-              onChanged: (val) {
-                setState(() => selectedCounty = val);
-                loadSubcounties();
-              },
-            ),
-
-            const SizedBox(height: 10),
-
-            // Subcounty dropdown
-            DropdownButton<String>(
-              isExpanded: true,
-              hint: const Text("Select Subcounty"),
-              value: selectedSubcounty,
-              items: subcounties
-                  .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                  .toList(),
-              onChanged: (val) {
-                setState(() => selectedSubcounty = val);
-                loadWards();
-              },
-            ),
-
-            const SizedBox(height: 10),
-
-            // Ward dropdown
-            DropdownButton<String>(
-              isExpanded: true,
-              hint: const Text("Select Ward"),
-              value: selectedWard,
-              items: wards
-                  .map((w) => DropdownMenuItem(value: w, child: Text(w)))
-                  .toList(),
-              onChanged: (val) {
-                setState(() => selectedWard = val);
-                loadStations();
-              },
-            ),
-
-            const Divider(height: 30),
-
-            // Station list
-            Expanded(
-              child: stations.isEmpty
-                  ? const Center(
-                child: Text(
-                    "Select ward, subcounty, and county to view stations"),
-              )
-                  : ListView.separated(
-                itemCount: stations.length,
-                separatorBuilder: (_, __) => const Divider(),
-                itemBuilder: (context, index) {
-                  final station = stations[index];
-
-                  return ListTile(
-                    leading: const Icon(
-                      Icons.local_fire_department,
-                      color: Colors.red,
+      body: Column(
+        children: [
+          _buildFilterSection(),
+          Expanded(
+            child: isLoadingStations
+                ? const Center(child: CircularProgressIndicator())
+                : stations.isEmpty
+                ? _emptyState()
+                : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: stations.length,
+              itemBuilder: (context, index) {
+                final s = stations[index];
+                return Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  elevation: 3,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: CircleAvatar(backgroundColor: Colors.blue[50], child: const Icon(Icons.fire_truck, color: Colors.blue)),
+                    title: Text(s['station_name'] ?? 'Fire Station', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(s['phone'] ?? 'No phone number'),
+                    trailing: CircleAvatar(
+                      backgroundColor: Colors.green,
+                      child: IconButton(
+                        icon: const Icon(Icons.call, color: Colors.white),
+                        onPressed: () => _call(s['phone']),
+                      ),
                     ),
-                    title: Text(
-                        station['station_name'] ?? 'Unknown Station'),
-                    subtitle: Text(
-                        "Tap to call ${station['phone'] ?? 'N/A'}"),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.call),
-                      onPressed: () {
-                        if (station['phone'] != null) {
-                          callNumber(station['phone']);
-                        }
-                      },
-                    ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+      bottomNavigationBar: _quickCall999(),
+    );
+  }
 
-      // ================= BOTTOM 999 BUTTON =================
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.phone, color: Colors.white),
-            label: const Text(
-              "Call 999",
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              minimumSize: const Size.fromHeight(55),
-            ),
-            onPressed: () {
-              callNumber("999");
+  Widget _buildFilterSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue[800],
+        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(25), bottomRight: Radius.circular(25)),
+      ),
+      child: Column(
+        children: [
+          _customDropdown(
+            hint: "Select County",
+            val: selectedCounty,
+            items: counties,
+            loading: isLoadingCounties,
+            onChange: (v) async {
+              setState(() {
+                selectedCounty = v;
+                selectedSubcounty = null;
+                selectedWard = null;
+                subcounties = [];
+                wards = [];
+                stations = [];
+                isLoadingSubcounties = true;
+              });
+              await _loadData('subcounty', v, (list) {
+                setState(() {
+                  subcounties = list;
+                  isLoadingSubcounties = false;
+                });
+              });
             },
           ),
+          const SizedBox(height: 10),
+          _customDropdown(
+            hint: "Select Subcounty",
+            val: selectedSubcounty,
+            items: subcounties,
+            loading: isLoadingSubcounties,
+            enabled: selectedCounty != null,
+            onChange: (v) async {
+              setState(() {
+                selectedSubcounty = v;
+                selectedWard = null;
+                wards = [];
+                stations = [];
+                isLoadingWards = true;
+              });
+              await _loadData('ward', v, (list) {
+                setState(() {
+                  wards = list;
+                  isLoadingWards = false;
+                });
+              });
+            },
+          ),
+          const SizedBox(height: 10),
+          _customDropdown(
+            hint: "Select Ward",
+            val: selectedWard,
+            items: wards,
+            loading: isLoadingWards,
+            enabled: selectedSubcounty != null,
+            onChange: (v) {
+              setState(() => selectedWard = v);
+              _loadStations();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _customDropdown({
+    required String hint,
+    required String? val,
+    required List<String> items,
+    required Function(String?) onChange,
+    bool loading = false,
+    bool enabled = true,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: enabled ? Colors.white : Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          hint: Text(loading ? "Loading..." : hint),
+          value: items.contains(val) ? val : null,
+          items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
+          onChanged: enabled && !loading ? onChange : null,
         ),
+      ),
+    );
+  }
+
+  Widget _emptyState() => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.location_city, size: 64, color: Colors.grey[300]),
+        const SizedBox(height: 10),
+        Text(
+          selectedWard == null ? "Select location above to find stations" : "No verified stations in this ward",
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.grey),
+        ),
+      ],
+    ),
+  );
+
+  Widget _quickCall999() => SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          minimumSize: const Size.fromHeight(55),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        ),
+        icon: const Icon(Icons.phone, color: Colors.white),
+        label: const Text("CALL EMERGENCY (999)", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        onPressed: () => _call("999"),
+      ),
+    ),
+  );
+
+  Future<void> _call(String? num) async {
+    if (num == null) return;
+    final Uri uri = Uri(scheme: 'tel', path: num);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        throw 'Could not launch $num';
+      }
+    } catch (e) {
+      debugPrint("Call Error: $e");
+    }
+  }
+}
+
+// =====================================
+// SAFETY TIPS SCREEN
+// =====================================
+class SafetyTipsScreen extends StatelessWidget {
+  const SafetyTipsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(title: const Text("Fire Safety Tips", style: TextStyle(color: Colors.white)), backgroundColor: Colors.orange[700], iconTheme: const IconThemeData(color: Colors.white), elevation: 0),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('safety_tips').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No safety tips available. Stay safe!"));
+          }
+          final tips = snapshot.data!.docs;
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: tips.length,
+            itemBuilder: (context, index) {
+              final data = tips[index].data() as Map<String, dynamic>;
+              return Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: CircleAvatar(backgroundColor: Colors.orange[50], child: const Icon(Icons.warning_amber_rounded, color: Colors.orange)),
+                  title: Text(data['description'] ?? 'No tip available', style: const TextStyle(fontSize: 15, height: 1.4)),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

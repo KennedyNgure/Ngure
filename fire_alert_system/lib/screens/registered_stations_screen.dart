@@ -5,288 +5,214 @@ class RegisteredStationsScreen extends StatefulWidget {
   const RegisteredStationsScreen({super.key});
 
   @override
-  State<RegisteredStationsScreen> createState() =>
-      _RegisteredStationsScreenState();
+  State<RegisteredStationsScreen> createState() => _RegisteredStationsScreenState();
 }
 
-class _RegisteredStationsScreenState
-    extends State<RegisteredStationsScreen> {
+class _RegisteredStationsScreenState extends State<RegisteredStationsScreen> {
   String searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
 
   /// 🔥 TOGGLE VERIFY STATUS
   Future<void> toggleVerify(String docId, String currentStatus) async {
-    String newStatus =
-    currentStatus == "verified" ? "unverified" : "verified";
+    String newStatus = currentStatus == "verified" ? "unverified" : "verified";
 
-    await FirebaseFirestore.instance
-        .collection("stations")
-        .doc(docId)
-        .update({
+    await FirebaseFirestore.instance.collection("stations").doc(docId).update({
       "status": newStatus,
     });
 
+    if (!mounted) return;
+    _showSnackBar("Station marked as $newStatus", newStatus == "verified" ? Colors.green : Colors.orange);
+  }
+
+  /// 🗑 DELETE STATION
+  Future<void> deleteStation(String docId, String stationName) async {
+    try {
+      await FirebaseFirestore.instance.collection("stations").doc(docId).delete();
+      _showSnackBar("$stationName deleted successfully", Colors.red);
+    } catch (e) {
+      _showSnackBar("Error: $e", Colors.red);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Station marked as $newStatus"),
-        backgroundColor:
-        newStatus == "verified" ? Colors.green : Colors.orange,
+      SnackBar(content: Text(message), backgroundColor: color, behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  /// CONFIRM DELETE DIALOG
+  void confirmDelete(String docId, String stationName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Delete Station?"),
+        content: Text("Are you sure you want to remove $stationName? This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            onPressed: () {
+              Navigator.pop(context);
+              deleteStation(docId, stationName);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
 
-  /// 🗑 DELETE STATION
-  Future<void> deleteStation(BuildContext context, String stationName) async {
-    try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection("stations")
-          .where("station_name", isEqualTo: stationName)
-          .get();
-
-      for (var doc in snapshot.docs) {
-        await FirebaseFirestore.instance
-            .collection("stations")
-            .doc(doc.id)
-            .delete();
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Station deleted successfully"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting station: $e")),
-      );
-    }
-  }
-
-  /// CONFIRM DELETE
-  void confirmDelete(BuildContext context, String stationName) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Delete Station"),
-          content: Text("Are you sure you want to delete $stationName?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                Navigator.pop(context);
-                deleteStation(context, stationName);
-              },
-              child: const Text("Delete"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// 🔍 SEARCH FUNCTION
   bool matchesSearch(Map<String, dynamic> station) {
     final query = searchQuery.toLowerCase();
-
-    final name = (station["station_name"] ?? "").toLowerCase();
-    final ward = (station["ward"] ?? "").toLowerCase();
-    final subcounty = (station["subcounty"] ?? "").toLowerCase();
-    final county = (station["county"] ?? "").toLowerCase();
-    final status = (station["status"] ?? "unverified").toLowerCase();
-
-    return name.contains(query) ||
-        ward.contains(query) ||
-        subcounty.contains(query) ||
-        county.contains(query) ||
-        status.contains(query);
+    return (station["station_name"] ?? "").toLowerCase().contains(query) ||
+        (station["ward"] ?? "").toLowerCase().contains(query) ||
+        (station["county"] ?? "").toLowerCase().contains(query) ||
+        (station["status"] ?? "").toLowerCase().contains(query);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text("Registered Stations"),
+        title: const Text("Fire Stations", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.red,
+        elevation: 0,
       ),
-
       body: Column(
         children: [
-
-          /// 🔍 SEARCH BAR
-          Padding(
-            padding: const EdgeInsets.all(12),
+          // MODERN SEARCH HEADER
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 25),
+            decoration: const BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+            ),
             child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => searchQuery = val),
               decoration: InputDecoration(
-                hintText:
-                "Search by name, ward, county or status",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                hintText: "Search by name, location, or status...",
+                prefixIcon: const Icon(Icons.search, color: Colors.red),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: EdgeInsets.zero,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
               ),
-              onChanged: (value) {
-                setState(() {
-                  searchQuery = value.trim();
-                });
-              },
             ),
           ),
 
-          /// 📋 LIST
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection("stations")
-                  .where("role", isNotEqualTo: "admin") // 🚫 EXCLUDE ADMINS
-                  .snapshots(),
+              stream: FirebaseFirestore.instance.collection("stations").where("role", isNotEqualTo: "admin").snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.red));
 
-                var stations = snapshot.data!.docs;
+                var docs = snapshot.data!.docs.where((doc) => matchesSearch(doc.data() as Map<String, dynamic>)).toList();
 
-                var filteredStations = stations.where((doc) {
-                  var station =
-                  doc.data() as Map<String, dynamic>;
-
-                  // 🚫 SAFETY CHECK AGAIN
-                  if ((station["role"] ?? "") == "admin") {
-                    return false;
-                  }
-
-                  return matchesSearch(station);
-                }).toList();
-
-                if (filteredStations.isEmpty) {
-                  return const Center(
-                    child: Text("No matching stations found"),
-                  );
+                if (docs.isEmpty) {
+                  return Center(child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.location_off, size: 80, color: Colors.grey[400]),
+                      const SizedBox(height: 10),
+                      Text("No stations found", style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                    ],
+                  ));
                 }
 
                 return ListView.builder(
-                  itemCount: filteredStations.length,
+                  padding: const EdgeInsets.all(12),
+                  itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    var doc = filteredStations[index];
-                    var station =
-                    doc.data() as Map<String, dynamic>;
-
-                    String name =
-                        station["station_name"] ?? "Unknown";
-                    String phone = station["phone"] ?? "No phone";
-                    String email = station["email"] ?? "No email";
-
-                    String ward = station["ward"] ?? "Unknown";
-                    String subcounty =
-                        station["subcounty"] ?? "Unknown";
-                    String county = station["county"] ?? "Unknown";
-
-                    String status =
-                        station["status"] ?? "unverified";
+                    var doc = docs[index];
+                    var station = doc.data() as Map<String, dynamic>;
+                    String status = station["status"] ?? "unverified";
+                    bool isVerified = status == "verified";
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      elevation: 4,
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                       child: Padding(
-                        padding: const EdgeInsets.all(15),
+                        padding: const EdgeInsets.all(16),
                         child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-
-                            /// NAME + STATUS
+                            // Header: Icon + Name + Status
                             Row(
                               children: [
-                                const Icon(Icons.fire_truck,
-                                    color: Colors.red),
-                                const SizedBox(width: 8),
+                                CircleAvatar(
+                                  backgroundColor: Colors.red[50],
+                                  child: const Icon(Icons.fire_truck, color: Colors.red),
+                                ),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    name,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    station["station_name"] ?? "Unknown",
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                   ),
                                 ),
-
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: status == "verified"
-                                        ? Colors.green
-                                        : Colors.orange,
-                                    borderRadius:
-                                    BorderRadius.circular(20),
+                                    color: isVerified ? Colors.green[50] : Colors.orange[50],
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: isVerified ? Colors.green : Colors.orange),
                                   ),
                                   child: Text(
-                                    status,
-                                    style: const TextStyle(
-                                        color: Colors.white),
+                                    status.toUpperCase(),
+                                    style: TextStyle(color: isVerified ? Colors.green[700] : Colors.orange[700], fontSize: 10, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],
                             ),
+                            const Divider(height: 25),
+
+                            // Contact Details
+                            _infoRow(Icons.phone_android, station["phone"] ?? "N/A"),
+                            _infoRow(Icons.email_outlined, station["email"] ?? "N/A"),
 
                             const SizedBox(height: 10),
 
-                            Text("Phone: $phone"),
-                            Text("Email: $email"),
-                            Text("Ward: $ward"),
-                            Text("Subcounty: $subcounty"),
-                            Text("County: $county"),
-
-                            const SizedBox(height: 15),
-
-                            /// VERIFY BUTTON
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                  status == "verified"
-                                      ? Colors.orange
-                                      : Colors.green,
-                                ),
-                                onPressed: () {
-                                  toggleVerify(doc.id, status);
-                                },
-                                icon: Icon(
-                                  status == "verified"
-                                      ? Icons.cancel
-                                      : Icons.verified,
-                                ),
-                                label: Text(
-                                  status == "verified"
-                                      ? "Unverify"
-                                      : "Verify",
-                                ),
-                              ),
+                            // Location Badge
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                _locationChip(station["ward"]),
+                                _locationChip(station["subcounty"]),
+                                _locationChip(station["county"], isCounty: true),
+                              ],
                             ),
 
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 20),
 
-                            /// DELETE BUTTON
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
+                            // Action Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: isVerified ? Colors.orange : Colors.green,
+                                      side: BorderSide(color: isVerified ? Colors.orange : Colors.green),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    onPressed: () => toggleVerify(doc.id, status),
+                                    icon: Icon(isVerified ? Icons.cancel_outlined : Icons.verified_user_outlined),
+                                    label: Text(isVerified ? "Unverify" : "Verify Station"),
+                                  ),
                                 ),
-                                onPressed: () {
-                                  confirmDelete(context, name);
-                                },
-                                icon: const Icon(Icons.delete),
-                                label: const Text("Delete Station"),
-                              ),
-                            ),
+                                const SizedBox(width: 10),
+                                Container(
+                                  decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(10)),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                    onPressed: () => confirmDelete(doc.id, station["station_name"] ?? "Station"),
+                                  ),
+                                ),
+                              ],
+                            )
                           ],
                         ),
                       ),
@@ -297,6 +223,34 @@ class _RegisteredStationsScreenState
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Text(text, style: TextStyle(color: Colors.grey[800], fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Widget _locationChip(String? text, {bool isCounty = false}) {
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isCounty ? Colors.blue[50] : Colors.grey[200],
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 12, color: isCounty ? Colors.blue[800] : Colors.grey[700], fontWeight: isCounty ? FontWeight.bold : FontWeight.normal),
       ),
     );
   }

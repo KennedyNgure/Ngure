@@ -5,12 +5,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'registration_screen.dart';
 import 'station_dashboard.dart';
 import 'admin_dashboard.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -18,214 +19,184 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
 
   bool _passwordVisible = false;
+  bool _isLoading = false;
 
-  /// 🔐 LOGIN FUNCTION
+  InputDecoration _buildInputDecoration(String label, IconData icon, {Widget? suffix}) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.red),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 15),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+    );
+  }
+
   Future<void> loginUser() async {
-    // 🧼 Normalize input (VERY IMPORTANT FIX)
-    String stationNameInput = stationController.text
-        .trim()
-        .toUpperCase();
-
+    String stationNameInput = stationController.text.trim().toUpperCase();
     String passwordInput = passwordController.text.trim();
 
-    print("RAW INPUT: '${stationController.text}'");
-    print("NORMALIZED INPUT: '$stationNameInput'");
-
     if (stationNameInput.isEmpty || passwordInput.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter station name and password")),
-      );
+      _showSnackBar("Please enter both station name and password", Colors.orange);
       return;
     }
 
+    setState(() => _isLoading = true);
+
     try {
-      // 🔍 Get station from Firestore
+      // Check Station existence first
       QuerySnapshot query = await FirebaseFirestore.instance
           .collection('stations')
-          .where(
-        'station_name',
-        isEqualTo: stationNameInput,
-      )
+          .where('station_name', isEqualTo: stationNameInput)
           .limit(1)
           .get();
 
       if (query.docs.isEmpty) {
-        throw Exception("Station not found");
+        _showSnackBar("No station found with that name", Colors.red);
+        setState(() => _isLoading = false);
+        return;
       }
 
-      var userData = query.docs.first.data() as Map<String, dynamic>;
-
+      Map<String, dynamic> userData = query.docs.first.data() as Map<String, dynamic>;
       String email = (userData["email"] ?? "").toString().trim();
       String role = (userData["role"] ?? "station").toString().toLowerCase();
 
-      print("EMAIL FOUND: $email");
-      print("ROLE FOUND: $role");
-
-      if (email.isEmpty) {
-        throw Exception("No email found for this station");
-      }
-
-      // 🔐 Firebase Authentication login
+      // Attempt Auth
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: passwordInput,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login Successful")),
-      );
+      if (!mounted) return;
 
-      // 🚀 Role-based navigation
       if (role == "admin") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AdminDashboard(isAdmin: true),
-          ),
-        );
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboard(isAdmin: true)));
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                StationDashboard(stationName: stationNameInput),
-          ),
-        );
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => StationDashboard(stationName: stationNameInput)));
       }
+
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Auth Error: ${e.message}")),
-      );
+      // Distinguish specific password errors
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        _showSnackBar("Incorrect password. Please try again.", Colors.red);
+      } else {
+        _showSnackBar(e.message ?? "Authentication failed", Colors.red);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login Failed: $e")),
-      );
+      _showSnackBar("Error: ${e.toString()}", Colors.red);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  /// 📧 FORGOT PASSWORD
-  Future<void> forgotPassword() async {
-    TextEditingController emailController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Reset Password"),
-          content: TextField(
-            controller: emailController,
-            decoration: const InputDecoration(
-              labelText: "Enter your email",
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  await FirebaseAuth.instance.sendPasswordResetEmail(
-                    email: emailController.text.trim(),
-                  );
-
-                  Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Reset email sent")),
-                  );
-                } catch (e) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Error: $e")),
-                  );
-                }
-              },
-              child: const Text("Send Link"),
-            )
-          ],
-        );
-      },
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color, behavior: SnackBarBehavior.floating),
     );
+  }
+
+  @override
+  void dispose() {
+    stationController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Station Login"),
-        backgroundColor: Colors.red,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: Colors.grey[100],
+      body: SingleChildScrollView(
         child: Column(
           children: [
-            TextField(
-              controller: stationController,
-              decoration: const InputDecoration(
-                labelText: "Station Name",
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            TextField(
-              controller: passwordController,
-              obscureText: !_passwordVisible,
-              decoration: InputDecoration(
-                labelText: "Password",
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _passwordVisible
-                        ? Icons.visibility
-                        : Icons.visibility_off,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _passwordVisible = !_passwordVisible;
-                    });
-                  },
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 20),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                gradient: LinearGradient(
+                  colors: [Colors.red, Color(0xFFB71C1C)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
+                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(50), bottomRight: Radius.circular(50)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.local_fire_department, size: 100, color: Colors.white),
+                  const SizedBox(height: 10),
+                  const Text("FIRE ALERT SYSTEM", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                  const Text("Station Login Portal", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                ],
               ),
             ),
-
-            const SizedBox(height: 30),
-
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 15,
-                ),
-              ),
-              onPressed: loginUser,
-              child: const Text("LOGIN"),
-            ),
-
-            const SizedBox(height: 10),
-
-            TextButton(
-              onPressed: forgotPassword,
-              child: const Text("Forgot Password?"),
-            ),
-
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => RegistrationScreen(),
+            const SizedBox(height: 40),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: stationController,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: _buildInputDecoration("Station Name", Icons.account_balance),
                   ),
-                );
-              },
-              child: const Text(
-                "Register New Station",
-                style: TextStyle(color: Colors.red),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: !_passwordVisible,
+                    decoration: _buildInputDecoration(
+                      "Password",
+                      Icons.lock,
+                      suffix: IconButton(
+                        icon: Icon(_passwordVisible ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
+                      child: const Text("Forgot Password?", style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : loginUser,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        elevation: 5,
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text("LOGIN", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Not registered? "),
+                      GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistrationScreen())),
+                        child: const Text("Register New Station", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
           ],
