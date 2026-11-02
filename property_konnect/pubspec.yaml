@@ -1,0 +1,95 @@
+name: property_konnect
+description: "PropertyKonnect - Kenya Hostels and Homes."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  intl: any
+  geocoding: ^5.0.0
+  http: ^1.2.0
+
+  # Firebase
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  cloud_firestore: ^6.10.0
+  firebase_storage: ^13.6.0
+  cloud_functions: ^6.5.0
+  device_info_plus: 13.3.0
+  android_id: ^0.4.0
+
+  # Storage / files / sharing
+  path_provider: ^2.1.0
+  shared_preferences: ^2.3.2
+  flutter_secure_storage: ^11.2.0
+  file_picker: ^13.1.0
+  image_picker: ^1.2.4
+  share_plus: ^13.3.1
+  url_launcher: ^6.3.0
+  syncfusion_flutter_pdfviewer: ^35.1.39
+
+  # Biometric authentication
+  local_auth: ^3.0.2
+  local_auth_android: ^2.2.0
+  local_auth_darwin: ^2.0.4
+
+  # Fonts
+  google_fonts: ^6.2.1
+
+  # Web downloads
+  web: ^1.1.0
+
+  # PDF generation and printing
+  pdf: ^3.13.1
+  printing: ^5.15.1
+
+  # App links / deep links
+  app_links: ^7.2.2
+
+  # Location
+  geolocator: ^14.0.1
+
+  # Native splash screen
+  flutter_native_splash: ^2.4.8
+  video_player: ^2.14.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  # Runtime language catalogs
+  assets:
+    - assets/icon/
+    - lib/l10n/
+
+# Launcher icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/img.png"
+  min_sdk_android: 21
+
+# Native splash screen
+flutter_native_splash:
+  color: "#F6FAF7"
+  color_dark: "#101612"
+  image: assets/icon/img.png
+
+  android_12:
+    color: "#F6FAF7"
+    color_dark: "#101612"
+    image: assets/icon/img.png
