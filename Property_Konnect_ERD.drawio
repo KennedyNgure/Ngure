@@ -1,0 +1,93 @@
+<mxfile host="app.diagrams.net" agent="ChatGPT">
+  <diagram id="pk-erd-organized" name="Property Konnect - Organized ERD">
+    <mxGraphModel dx="3520" dy="2142" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="users" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.4;align=left;verticalAlign=top;spacing=0;overflow=hidden;" value="&lt;div style=&quot;border:1px solid #334155;background:#ffffff;width:100%;height:100%;font-family:Arial,sans-serif;font-size:13px;color:#172033;&quot;&gt;&lt;div style=&quot;background:#DCEAF7;border-bottom:1px solid #334155;padding:9px 10px;text-align:center;font-weight:bold;font-size:15px;&quot;&gt;USERS&lt;/div&gt;&lt;div style=&quot;padding:8px 12px;line-height:1.55;&quot;&gt;&lt;b&gt;PK&lt;/b&gt; uid&lt;br&gt;full_name&lt;br&gt;email (unique)&lt;br&gt;phone&lt;br&gt;role&lt;br&gt;is_active&lt;br&gt;registration_stage&lt;br&gt;created_at&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="220" width="130" x="90" y="143.75" as="geometry" />
+        </mxCell>
+        <mxCell id="properties" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.4;align=left;verticalAlign=top;spacing=0;overflow=hidden;" value="&lt;div style=&quot;border:1px solid #334155;background:#ffffff;width:100%;height:100%;font-family:Arial,sans-serif;font-size:13px;color:#172033;&quot;&gt;&lt;div style=&quot;background:#DCEAF7;border-bottom:1px solid #334155;padding:9px 10px;text-align:center;font-weight:bold;font-size:15px;&quot;&gt;PROPERTIES&lt;/div&gt;&lt;div style=&quot;padding:8px 12px;line-height:1.55;&quot;&gt;&lt;b&gt;PK&lt;/b&gt; property_id&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; owner_id → USERS.uid&lt;br&gt;title, purpose, category, subtype&lt;br&gt;county, subcounty, area&lt;br&gt;price, payment_cycle&lt;br&gt;description&lt;br&gt;verification_status&lt;br&gt;availability_status, created_at&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="240" width="205" x="555" y="123.75" as="geometry" />
+        </mxCell>
+        <mxCell id="property_media" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.4;align=left;verticalAlign=top;spacing=0;overflow=hidden;" value="&lt;div style=&quot;border:1px solid #334155;background:#ffffff;width:100%;height:100%;font-family:Arial,sans-serif;font-size:13px;color:#172033;&quot;&gt;&lt;div style=&quot;background:#DCEAF7;border-bottom:1px solid #334155;padding:9px 10px;text-align:center;font-weight:bold;font-size:15px;&quot;&gt;PROPERTY_MEDIA&lt;/div&gt;&lt;div style=&quot;padding:8px 12px;line-height:1.55;&quot;&gt;&lt;b&gt;PK&lt;/b&gt; media_id&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; property_id → PROPERTIES.property_id&lt;br&gt;storage_url&lt;br&gt;media_type (image / video)&lt;br&gt;display_order&lt;br&gt;is_cover&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="180" width="280" x="800" y="-70" as="geometry" />
+        </mxCell>
+        <mxCell id="reports" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.4;align=left;verticalAlign=top;spacing=0;overflow=hidden;" value="&lt;div style=&quot;border:1px solid #334155;background:#ffffff;width:100%;height:100%;font-family:Arial,sans-serif;font-size:13px;color:#172033;&quot;&gt;&lt;div style=&quot;background:#DCEAF7;border-bottom:1px solid #334155;padding:9px 10px;text-align:center;font-weight:bold;font-size:15px;&quot;&gt;REPORTS&lt;/div&gt;&lt;div style=&quot;padding:8px 12px;line-height:1.55;&quot;&gt;&lt;b&gt;PK&lt;/b&gt; report_id&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; reporter_id → USERS.uid&lt;br&gt;target_id, target_type&lt;br&gt;reason, description&lt;br&gt;status&lt;br&gt;created_at&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="190" width="190" x="480" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="admin_audit" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.4;align=left;verticalAlign=top;spacing=0;overflow=hidden;" value="&lt;div style=&quot;border:1px solid #334155;background:#ffffff;width:100%;height:100%;font-family:Arial,sans-serif;font-size:13px;color:#172033;&quot;&gt;&lt;div style=&quot;background:#DCEAF7;border-bottom:1px solid #334155;padding:9px 10px;text-align:center;font-weight:bold;font-size:15px;&quot;&gt;ADMIN_ACTIONS / AUDIT&lt;/div&gt;&lt;div style=&quot;padding:8px 12px;line-height:1.55;&quot;&gt;&lt;b&gt;PK&lt;/b&gt; action_id&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; admin_user_id → USERS.uid&lt;br&gt;target_id, target_type&lt;br&gt;action, reason, notes&lt;br&gt;created_at&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="152.5" width="220" x="-340" y="167.5" as="geometry" />
+        </mxCell>
+        <mxCell id="rel1" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#444444;strokeWidth=1.5;startArrow=none;endArrow=ERone;endFill=0;fontSize=11;fontColor=#222222;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.25;exitDx=0;exitDy=0;" target="properties" value="owns 1 : 0..*">
+          <mxGeometry relative="1" x="0.18" as="geometry" />
+        </mxCell>
+        <mxCell id="rel2" edge="1" parent="1" source="properties" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#444444;strokeWidth=1.5;startArrow=none;endArrow=ERone;endFill=0;fontSize=11;fontColor=#222222;labelBackgroundColor=#FFFFFF;" target="property_media" value="has 1 : 0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel3" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#444444;strokeWidth=1.5;startArrow=none;endArrow=ERone;endFill=0;fontSize=11;fontColor=#222222;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.75;exitDx=0;exitDy=0;" target="favourites" value="saves 1 : 0..*">
+          <mxGeometry relative="1" x="-0.2727" as="geometry">
+            <Array as="points">
+              <mxPoint x="-90" y="308.8" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel4" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#444444;strokeWidth=1.5;startArrow=none;endArrow=ERone;endFill=0;fontSize=11;fontColor=#222222;labelBackgroundColor=#FFFFFF;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="reports" value="submits 1 : 0..*">
+          <mxGeometry relative="1" x="-0.0504" as="geometry">
+            <Array as="points">
+              <mxPoint x="220" y="280" />
+              <mxPoint x="380" y="280" />
+              <mxPoint x="380" y="495" />
+            </Array>
+            <mxPoint x="220" y="308.75" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel5" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#444444;strokeWidth=1.5;startArrow=none;endArrow=ERone;endFill=0;fontSize=11;fontColor=#222222;labelBackgroundColor=#FFFFFF;" target="student_posts" value="creates 1 : 0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel6" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#444444;strokeWidth=1.5;startArrow=none;endArrow=ERone;endFill=0;fontSize=11;fontColor=#222222;labelBackgroundColor=#FFFFFF;" target="faqs" value="admin updates 1 : 0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel7" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#444444;strokeWidth=1.5;startArrow=none;endArrow=ERone;endFill=0;fontSize=11;fontColor=#222222;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="reviews" value="writes 1 : 0..*">
+          <mxGeometry relative="1" x="0.0611" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="308.8" />
+              <mxPoint x="320" y="640" />
+              <mxPoint x="910" y="640" />
+            </Array>
+            <mxPoint x="850" y="840" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel8" edge="1" parent="1" source="properties" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#444444;strokeWidth=1.5;startArrow=none;endArrow=ERone;endFill=0;fontSize=11;fontColor=#222222;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.75;exitDx=0;exitDy=0;" target="reviews" value="receives 1 : 0..*">
+          <mxGeometry relative="1" x="-0.1442" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="310" />
+              <mxPoint x="1000" y="310" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel9" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#444444;strokeWidth=1.5;startArrow=none;endArrow=ERone;endFill=0;fontSize=11;fontColor=#222222;labelBackgroundColor=#FFFFFF;" target="admin_audit" value="performs 1 : 0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="3E4Zmp3e4vBe9_upOMsN-1" parent="1" style="swimlane;startSize=0;" value="" vertex="1">
+          <mxGeometry height="1020" width="1530" x="-400" y="-350" as="geometry" />
+        </mxCell>
+        <mxCell id="faqs" parent="3E4Zmp3e4vBe9_upOMsN-1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.4;align=left;verticalAlign=top;spacing=0;overflow=hidden;" value="&lt;div style=&quot;border:1px solid #334155;background:#ffffff;width:100%;height:100%;font-family:Arial,sans-serif;font-size:13px;color:#172033;&quot;&gt;&lt;div style=&quot;background:#DCEAF7;border-bottom:1px solid #334155;padding:9px 10px;text-align:center;font-weight:bold;font-size:15px;&quot;&gt;FAQS&lt;/div&gt;&lt;div style=&quot;padding:8px 12px;line-height:1.55;&quot;&gt;&lt;b&gt;PK&lt;/b&gt; faq_id&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; updated_by → USERS.uid (admin)&lt;br&gt;question_en, answer_en&lt;br&gt;question_sw, answer_sw&lt;br&gt;category, display_order&lt;br&gt;updated_at&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="180" width="250" x="430" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="favourites" parent="3E4Zmp3e4vBe9_upOMsN-1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.4;align=left;verticalAlign=top;spacing=0;overflow=hidden;" value="&lt;div style=&quot;border:1px solid #334155;background:#ffffff;width:100%;height:100%;font-family:Arial,sans-serif;font-size:13px;color:#172033;&quot;&gt;&lt;div style=&quot;background:#DCEAF7;border-bottom:1px solid #334155;padding:9px 10px;text-align:center;font-weight:bold;font-size:15px;&quot;&gt;FAVOURITES&lt;/div&gt;&lt;div style=&quot;padding:8px 12px;line-height:1.55;&quot;&gt;&lt;b&gt;PK&lt;/b&gt; favourite_id&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; user_id → USERS.uid&lt;br&gt;target_id&lt;br&gt;target_type (property / service / roommate)&lt;br&gt;created_at&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="160" width="270" x="130" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="reviews" parent="3E4Zmp3e4vBe9_upOMsN-1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.4;align=left;verticalAlign=top;spacing=0;overflow=hidden;" value="&lt;div style=&quot;border:1px solid #334155;background:#ffffff;width:100%;height:100%;font-family:Arial,sans-serif;font-size:13px;color:#172033;&quot;&gt;&lt;div style=&quot;background:#DCEAF7;border-bottom:1px solid #334155;padding:9px 10px;text-align:center;font-weight:bold;font-size:15px;&quot;&gt;REVIEWS&lt;/div&gt;&lt;div style=&quot;padding:8px 12px;line-height:1.55;&quot;&gt;&lt;b&gt;PK&lt;/b&gt; review_id&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; reviewer_id → USERS.uid&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; property_id → PROPERTIES.property_id&lt;br&gt;rating, comment&lt;br&gt;moderation_status&lt;br&gt;created_at&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="205" width="280" x="1170" y="715" as="geometry" />
+        </mxCell>
+        <mxCell id="student_posts" parent="3E4Zmp3e4vBe9_upOMsN-1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.4;align=left;verticalAlign=top;spacing=0;overflow=hidden;" value="&lt;div style=&quot;border:1px solid #334155;background:#ffffff;width:100%;height:100%;font-family:Arial,sans-serif;font-size:13px;color:#172033;&quot;&gt;&lt;div style=&quot;background:#DCEAF7;border-bottom:1px solid #334155;padding:9px 10px;text-align:center;font-weight:bold;font-size:15px;&quot;&gt;STUDENT_HUB_POSTS*&lt;/div&gt;&lt;div style=&quot;padding:8px 12px;line-height:1.55;&quot;&gt;&lt;b&gt;PK&lt;/b&gt; post_id&lt;br&gt;&lt;b&gt;FK&lt;/b&gt; owner_user_id → USERS.uid&lt;br&gt;post_type (hostel / roommate / service / community / marketplace)&lt;br&gt;title, description&lt;br&gt;campus, location, category&lt;br&gt;budget / price, contact_details&lt;br&gt;verification_status, created_at&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="220" width="340" x="490" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="title" parent="3E4Zmp3e4vBe9_upOMsN-1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=22;fontColor=#172B4D;strokeColor=#000000;" value="&lt;b&gt;PROPERTY KONNECT&lt;/b&gt;&lt;br&gt;ENTITY RELATIONSHIP DIAGRAM (ERD)" vertex="1">
+          <mxGeometry height="65" width="680" x="300" y="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

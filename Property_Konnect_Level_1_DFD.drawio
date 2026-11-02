@@ -1,0 +1,217 @@
+<mxfile host="app.diagrams.net" agent="ChatGPT">
+  <diagram id="pk-level1" name="Property Konnect Level 1 DFD">
+    <mxGraphModel dx="3550" dy="2128" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;" value="&lt;b&gt;PROPERTY KONNECT&lt;/b&gt;&lt;br&gt;Level 1 Data Flow Diagram" vertex="1">
+          <mxGeometry height="45" width="460" x="470" y="-120" as="geometry" />
+        </mxCell>
+        <mxCell id="public" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#222222;strokeWidth=1.4;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;Public User /&lt;br&gt;Property Seeker&lt;/b&gt;" vertex="1">
+          <mxGeometry height="65" width="155" x="25" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="owner" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#222222;strokeWidth=1.4;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;Property Owner&lt;/b&gt;" vertex="1">
+          <mxGeometry height="65" width="155" x="-155" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="student" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#222222;strokeWidth=1.4;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;Student&lt;/b&gt;" vertex="1">
+          <mxGeometry height="65" width="155" x="25" y="665" as="geometry" />
+        </mxCell>
+        <mxCell id="provider" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#222222;strokeWidth=1.4;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;Service Provider /&lt;br&gt;Post Owner&lt;/b&gt;" vertex="1">
+          <mxGeometry height="65" width="155" x="1215" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="admin" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#222222;strokeWidth=1.4;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;System Administrator&lt;/b&gt;" vertex="1">
+          <mxGeometry height="65" width="155" x="1340" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;1.0&lt;/b&gt;&lt;br&gt;Account and Profile&lt;br&gt;Management" vertex="1">
+          <mxGeometry height="75" width="205" x="265" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;2.0&lt;/b&gt;&lt;br&gt;Property Search and&lt;br&gt;Listing Management" vertex="1">
+          <mxGeometry height="80" width="220" x="550" y="-40" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;3.0&lt;/b&gt;&lt;br&gt;Student Hub&lt;br&gt;Management" vertex="1">
+          <mxGeometry height="80" width="205" x="835" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;4.0&lt;/b&gt;&lt;br&gt;Favourites, Reports&lt;br&gt;and Reviews" vertex="1">
+          <mxGeometry height="80" width="220" x="520" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="p5" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.5;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;5.0&lt;/b&gt;&lt;br&gt;Administration and&lt;br&gt;Content Moderation" vertex="1">
+          <mxGeometry height="85" width="220" x="692.5" y="990" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" parent="1" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.2;fontSize=11;align=center;" value="D1. User Profiles and&lt;br&gt;Account Records" vertex="1">
+          <mxGeometry height="48" width="195" x="400" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" parent="1" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.2;fontSize=11;align=center;" value="D2. Property Listings&lt;br&gt;and Media References" vertex="1">
+          <mxGeometry height="48" width="205" x="700" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" parent="1" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.2;fontSize=11;align=center;" value="D3. Student Hub Posts&lt;br&gt;(Hostels, Roommates, Services,&lt;br&gt;Communities, Marketplace)" vertex="1">
+          <mxGeometry height="62" width="225" x="1030" y="263" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" parent="1" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.2;fontSize=11;align=center;" value="D4. Favourites, Reports&lt;br&gt;and Reviews" vertex="1">
+          <mxGeometry height="48" width="205" x="230" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" parent="1" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;strokeWidth=1.2;fontSize=11;align=center;" value="D5. FAQs and&lt;br&gt;Application Settings" vertex="1">
+          <mxGeometry height="48" width="185" x="1060" y="546" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="public" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p1" value="Sign-in / account details">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="owner" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p1" value="Registration and profile details">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="p1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="d1" value="Create / update profile">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p1" value="Role and account status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="p1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="public" value="Authentication result / access">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="p1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="owner" value="Account / verification status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="public" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p2" value="Search criteria and location">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="owner" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p2" value="Property details and media">
+          <mxGeometry relative="1" x="0.0007" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="422.5" />
+              <mxPoint x="200" y="250" />
+              <mxPoint x="645" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="p2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="d2" value="Save / update listings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="d2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p2" value="Available property data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="p2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="public" value="Search results and property details">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="p2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="owner" value="Listing status and activity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="student" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p3" value="Hostel / roommate searches and posts">
+          <mxGeometry relative="1" x="0.0141" as="geometry">
+            <Array as="points">
+              <mxPoint x="920" y="697.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" edge="1" parent="1" source="provider" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p3" value="Service and student post details">
+          <mxGeometry relative="1" x="0.0236" as="geometry">
+            <Array as="points">
+              <mxPoint x="1292.5" y="360" />
+              <mxPoint x="950" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="p3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="d3" value="Save / update Student Hub content">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" edge="1" parent="1" source="d3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p3" value="Hostel, roommate and post records">
+          <mxGeometry relative="1" x="0.3053" as="geometry">
+            <Array as="points">
+              <mxPoint x="1132.5" y="190" />
+              <mxPoint x="1000" y="190" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e17" edge="1" parent="1" source="p3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="student" value="Student Hub results and details">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" edge="1" parent="1" source="p3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="provider" value="Post status and enquiries">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" edge="1" parent="1" source="public" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p4" value="Favourites, reports and reviews">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" edge="1" parent="1" source="student" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p4" value="Saved posts and content reports">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" edge="1" parent="1" source="p4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="d4" value="Store favourites / reports / reviews">
+          <mxGeometry relative="1" x="-0.0366" as="geometry">
+            <Array as="points">
+              <mxPoint x="645" y="490" />
+              <mxPoint x="320" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e22" edge="1" parent="1" source="d4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p4" value="Saved items and feedback">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" edge="1" parent="1" source="p4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="public" value="Confirmation and review information">
+          <mxGeometry relative="1" x="-0.0048" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e24" edge="1" parent="1" source="admin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p5" value="Admin actions and moderation decisions">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="802.5" y="730" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e25" edge="1" parent="1" source="p5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="d1" value="Manage users / owner verification">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e26" edge="1" parent="1" source="d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p5" value="User and owner records">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e27" edge="1" parent="1" source="p5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="d2" value="Verify / deactivate property listings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e28" edge="1" parent="1" source="d2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p5" value="Property records for review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e29" edge="1" parent="1" source="p5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="d3" value="Moderate Student Hub content">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1120" y="1032.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e30" edge="1" parent="1" source="d3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p5" value="Student content for review">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1132.5" y="460" />
+              <mxPoint x="830" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e31" edge="1" parent="1" source="p5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="d4" value="Resolve reports / moderate reviews">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e32" edge="1" parent="1" source="d4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p5" value="Reports and moderation status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e33" edge="1" parent="1" source="p5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="d5" value="Manage FAQs and app settings">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1210" y="1032.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e34" edge="1" parent="1" source="d5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="p5" value="FAQ and configuration records">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="570" />
+              <mxPoint x="1010" y="772.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e35" edge="1" parent="1" source="p5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;" target="admin" value="Dashboard statistics / action results">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="4wyiWPK6nmgFm1f-cX4Y-2" parent="1" style="swimlane;startSize=0;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="1240" width="1710" x="-180" y="-120" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
